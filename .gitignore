@@ -1,0 +1,20 @@
+node_modules
+dist
+.DS_Store
+*.log
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Local environment variables (do NOT commit)
+.env
+.env.local
+.env.development.local
+.env.production.local
+
+# Vite / editor caches
+.vite
+.cache
+.idea
+.vscode
+
