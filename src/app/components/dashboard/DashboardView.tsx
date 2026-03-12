@@ -161,14 +161,14 @@ export function DashboardView() {
           <div className="flex items-center gap-2">
             {canCreate && (
               <>
-                <Button
+                {/* <Button
                   variant="outline"
                   className="gap-2"
                   onClick={() => setRequestPaneOpen(true)}
                 >
                   <ClipboardList className="size-4" />
                   Request Drawing
-                </Button>
+                </Button> */}
 
                 {/* Inventory quick-add — superadmin only */}
                 {isSuperadmin && <InventoryDropdown onSelect={setInventoryFormOpen} />}
