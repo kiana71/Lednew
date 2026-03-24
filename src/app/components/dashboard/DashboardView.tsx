@@ -161,14 +161,14 @@ export function DashboardView() {
           <div className="flex items-center gap-2">
             {canCreate && (
               <>
-                {/* <Button
+                <Button
                   variant="outline"
                   className="gap-2"
                   onClick={() => setRequestPaneOpen(true)}
                 >
                   <ClipboardList className="size-4" />
                   Request Drawing
-                </Button> */}
+                </Button>
 
                 {/* Inventory quick-add — superadmin only */}
                 {isSuperadmin && <InventoryDropdown onSelect={setInventoryFormOpen} />}
@@ -213,7 +213,9 @@ export function DashboardView() {
         <DrawingGrid
           drawings={drawings}
           loading={loading && !searching}
-          onOpen={handleOpenDrawing}
+          // Temporarily disable opening drawings in the studio from the dashboard.after that change it to handleOpenDrawing
+          //onOpen={handleOpenDrawing}
+          onOpen={undefined}
           onEdit={canCreate ? (d) => setDrawingToEdit(d) : undefined}
           onDelete={canDelete ? (d) => setDrawingToDelete(d) : undefined}
           onDuplicate={canCreate ? handleDuplicateDrawing : undefined}
@@ -233,7 +235,10 @@ export function DashboardView() {
       {/* ---- Dialogs & Panes ---- */}
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!drawingToDelete} onOpenChange={(open) => !open && setDrawingToDelete(null)}>
+      <AlertDialog
+        open={!!drawingToDelete}
+        onOpenChange={(open) => !open && setDrawingToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Drawing</AlertDialogTitle>
@@ -250,7 +255,10 @@ export function DashboardView() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete Permanently
             </AlertDialogAction>
           </AlertDialogFooter>

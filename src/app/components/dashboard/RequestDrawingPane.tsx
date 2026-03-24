@@ -50,6 +50,7 @@ import {
 import { inventoryService } from '../../services/InventoryService';
 import { dataService } from '../../services/DataService';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
 
 // ── Order number counter ──────────────────────────────────────────────
 
@@ -68,7 +69,6 @@ interface RequestDrawingPaneProps {
 
 export function RequestDrawingPane({ open, onOpenChange, onSubmitted }: RequestDrawingPaneProps) {
   const { user } = useAuth();
-
   // ── Inventory data ────────────────────────────────────────────────
   const [screens, setScreens] = useState<Screen[]>([]);
   const [mounts, setMounts] = useState<Mount[]>([]);
@@ -182,12 +182,16 @@ export function RequestDrawingPane({ open, onOpenChange, onSubmitted }: RequestD
         resetForm();
         onOpenChange(false);
         onSubmitted();
+      } else {
+        toast.error(response.error || 'Failed to submit drawing request.');
       }
     } catch {
-      // Error handling — toast in parent
+      toast.error('Failed to submit drawing request.');
+      console.error('Request drawing submit failed');
     }
-
-    setSubmitting(false);
+    finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = (o: boolean) => {

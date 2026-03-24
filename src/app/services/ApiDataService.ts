@@ -116,7 +116,15 @@ export class ApiDataService implements IDataService {
     currentPassword: string,
     newPassword: string,
   ): Promise<ApiResponse<void>> {
-    // Admin resetting another user's password via /users/:id/password
+    // Self-service password change from Settings uses current password.
+    // Admin reset dialog sends an empty current password and uses /users/:id/password.
+    if (currentPassword.trim().length > 0) {
+      return apiFetch('/auth/password', {
+        method: 'PUT',
+        body: { currentPassword, newPassword },
+      });
+    }
+
     return apiFetch(`/users/${id}/password`, {
       method: 'PUT',
       body: { newPassword },
@@ -126,8 +134,8 @@ export class ApiDataService implements IDataService {
   async deleteUser(id: string): Promise<ApiResponse<void>> {
     return apiFetch(`/users/${id}`, { method: 'DELETE' });
   }
-
-  // ── Authentication ───────────────────────────────────────────────────────
+  
+// ── Authentication ───────────────────────────────────────────────────────
 
   async authenticate(email: string, password: string): Promise<ApiResponse<User>> {
     const res = await apiFetch<{

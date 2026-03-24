@@ -14,7 +14,8 @@ import {
   PopoverTrigger,
 } from '../ui/popover';
 import { Button } from '../ui/button';
-import { ScrollArea } from '../ui/scroll-area';
+// Use native scrolling for the list: Radix ScrollArea can be unreliable for wheel events
+// when nested inside a Sheet/Popover.
 import { ChevronDown, Search, X, Monitor, Settings, Tv, Zap, Check } from 'lucide-react';
 
 // ── Type helpers ──────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ export function InventoryPicker<T extends PickerItem>({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -93,7 +95,7 @@ export function InventoryPicker<T extends PickerItem>({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[var(--radix-popover-trigger-width)] p-0"
+          className="w-[var(--radix-popover-trigger-width)] p-0 overflow-hidden"
           align="start"
           sideOffset={4}
         >
@@ -115,7 +117,18 @@ export function InventoryPicker<T extends PickerItem>({
           </div>
 
           {/* Items */}
-          <ScrollArea className="max-h-64">
+          {/* Give the list an explicit height so it cannot push outside the popover.
+              Use native overflow scroll so mouse wheel works. */}
+          <div
+            ref={listRef}
+            className="h-64 overflow-y-auto overflow-x-hidden overscroll-contain"
+            onWheel={(e) => {
+              // Prevent the Sheet from capturing the wheel; manually scroll the list instead.
+              const el = e.currentTarget;
+              el.scrollTop += e.deltaY;
+              e.stopPropagation();
+            }}
+          >
             {loading ? (
               <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>
             ) : filtered.length === 0 ? (
@@ -143,7 +156,7 @@ export function InventoryPicker<T extends PickerItem>({
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
 
           {/* Clear */}
           {value && (
