@@ -173,10 +173,10 @@ export function DashboardView() {
                 {/* Inventory quick-add — superadmin only */}
                 {isSuperadmin && <InventoryDropdown onSelect={setInventoryFormOpen} />}
 
-                {/* <Button onClick={handleNewDrawing} className="gap-2">
+                <Button onClick={handleNewDrawing} className="gap-2">
                   <Plus className="size-4" />
                   New Drawing
-                </Button> */}
+                </Button>
               </>
             )}
           </div>
@@ -214,8 +214,8 @@ export function DashboardView() {
           drawings={drawings}
           loading={loading && !searching}
           // Temporarily disable opening drawings in the studio from the dashboard.after that change it to handleOpenDrawing
-          //onOpen={handleOpenDrawing}
-          onOpen={undefined}
+          onOpen={handleOpenDrawing}
+          // onOpen={undefined}
           onEdit={canCreate ? (d) => setDrawingToEdit(d) : undefined}
           onDelete={canDelete ? (d) => setDrawingToDelete(d) : undefined}
           onDuplicate={canCreate ? handleDuplicateDrawing : undefined}

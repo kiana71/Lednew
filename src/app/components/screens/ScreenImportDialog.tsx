@@ -103,7 +103,7 @@ export function ScreenImportDialog({ open, onOpenChange, onImport }: ScreenImpor
             <Label className="text-sm font-medium">Instructions</Label>
             <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
               <li>Open your Google Sheet with screen data</li>
-              <li>Ensure columns match: Screen MFR, Make, Screen Size, Height, Width, Depth, Pseudonym</li>
+              <li>Ensure columns match: Screen MFR, Make, Screen Size, Height, Width, Depth, Alias</li>
               <li>Go to File &rarr; Download &rarr; Tab-separated values (.tsv) or Comma-separated values (.csv)</li>
               <li>Upload the downloaded file below</li>
             </ol>

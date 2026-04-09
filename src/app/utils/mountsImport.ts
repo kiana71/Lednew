@@ -15,7 +15,7 @@ export interface GoogleSheetsMountRow {
   'Height (in)': string;
   'Depth (in)': string;
   'Clearance needed around screen': string;
-  'Pseudonym': string;
+  'Alias': string;
 }
 
 /**
@@ -64,9 +64,9 @@ export function importMountsFromGoogleSheets(csvText: string, delimiter: string 
       try {
         const rowNumber = index + 2;
 
-        // Validate required fields — Pseudonym is required
-        if (!row.Pseudonym?.trim()) {
-          errors.push(`Row ${rowNumber}: Pseudonym is required`);
+        // Validate required fields — Alias is required
+        if (!row.Alias?.trim()) {
+          errors.push(`Row ${rowNumber}: Alias is required`);
           return;
         }
 
@@ -81,7 +81,7 @@ export function importMountsFromGoogleSheets(csvText: string, delimiter: string 
 
         const mount: Partial<Mount> = {
           type: 'mount',
-          alias: row.Pseudonym.trim(),
+          alias: row.Alias.trim(),
           model: row['MFG. PART']?.trim() || 'Unknown',
           manufacturer: row.Brand?.trim() || 'Unknown',
           maxLoadLbs,
@@ -131,7 +131,7 @@ export function downloadMountsTemplate() {
     'Height (in)',
     'Depth (in)',
     'Clearance needed around screen',
-    'Pseudonym',
+    'Alias',
   ];
   const exampleRow = [
     'SF650',

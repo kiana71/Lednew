@@ -13,7 +13,7 @@ export interface GoogleSheetsMediaPlayerRow {
   'Height': string;
   'Width': string;
   'Depth': string;
-  'Pseudonym': string;
+  'Alias': string;
 }
 
 /**
@@ -62,8 +62,8 @@ export function importMediaPlayersFromGoogleSheets(csvText: string, delimiter: s
       try {
         const rowNumber = index + 2;
 
-        if (!row.Pseudonym?.trim()) {
-          errors.push(`Row ${rowNumber}: Pseudonym is required`);
+        if (!row.Alias?.trim()) {
+          errors.push(`Row ${rowNumber}: Alias is required`);
           return;
         }
 
@@ -73,7 +73,7 @@ export function importMediaPlayersFromGoogleSheets(csvText: string, delimiter: s
 
         const player: Partial<MediaPlayer> = {
           type: 'mediaPlayer',
-          alias: row.Pseudonym.trim(),
+          alias: row.Alias.trim(),
           model: row['MFG. PART']?.trim() || 'Unknown',
           manufacturer: row.Make?.trim() || 'Unknown',
           dimensions: {
@@ -119,7 +119,7 @@ export function downloadMediaPlayersTemplate() {
     'Height',
     'Width',
     'Depth',
-    'Pseudonym',
+    'Alias',
   ];
   const exampleRow = [
     'XT1144',

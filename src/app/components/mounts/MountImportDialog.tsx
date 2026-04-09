@@ -72,7 +72,7 @@ export function MountImportDialog({ open, onOpenChange, onImport }: MountImportD
             <Label className="text-sm font-medium">Instructions</Label>
             <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
               <li>Open your Google Sheet with mount data</li>
-              <li>Ensure columns match: MFG. PART, Brand, Maximum Load (lbs), Width, Height, Depth, Clearance, Pseudonym</li>
+              <li>Ensure columns match: MFG. PART, Brand, Maximum Load (lbs), Width, Height, Depth, Clearance, Alias</li>
               <li>Go to File &rarr; Download &rarr; TSV or CSV</li>
               <li>Upload the downloaded file below</li>
             </ol>

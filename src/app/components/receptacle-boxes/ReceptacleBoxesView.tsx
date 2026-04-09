@@ -85,7 +85,7 @@ export function ReceptacleBoxesView() {
 
   const handleExport = () => {
     if (boxes.length === 0) { toast.error('No receptacle boxes to export'); return; }
-    const headers = ['MFG. PART', 'Brand', 'Width (in)', 'Height (in)', 'Depth (in)', 'Pseudonym'];
+    const headers = ['MFG. PART', 'Brand', 'Width (in)', 'Height (in)', 'Depth (in)', 'Alias'];
     const rows = boxes.map((b) => [b.model || '', b.manufacturer || '', `${b.dimensions.width}`, `${b.dimensions.height}`, `${b.dimensions.depth}`, b.alias || '']);
     const tsv = [headers.join('\t'), ...rows.map((r) => r.join('\t'))].join('\n');
     const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
@@ -96,7 +96,7 @@ export function ReceptacleBoxesView() {
   };
 
   const columns: Column<ReceptacleBox>[] = [
-    { key: 'alias', label: 'Pseudonym', width: '22%' },
+    { key: 'alias', label: 'Alias', width: '22%' },
     { key: 'model', label: 'MFG. Part', width: '18%' },
     { key: 'manufacturer', label: 'Brand', width: '16%' },
     { key: 'dimensionsWidth', label: 'Width (in)', render: (i) => `${i.dimensions.width} ${i.dimensions.unit}`, width: '14%' },
@@ -111,7 +111,7 @@ export function ReceptacleBoxesView() {
       {!loading && boxes.length > 0 && <ReceptacleBoxStats total={boxes.length} brands={uniqueBrands} />}
 
       <div className="flex-1 min-h-0">
-        <DatabaseTable title="Receptacle Boxes" columns={columns} data={boxes} loading={loading} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} onExport={handleExport} emptyMessage="No receptacle boxes in database. Add your first receptacle box to get started." searchPlaceholder="Search by pseudonym, part number, brand..."
+        <DatabaseTable title="Receptacle Boxes" columns={columns} data={boxes} loading={loading} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} onExport={handleExport} emptyMessage="No receptacle boxes in database. Add your first receptacle box to get started." searchPlaceholder="Search by alias, part number, brand..."
           headerActions={<Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2"><FileDown className="size-4" />Import</Button>} />
       </div>
 

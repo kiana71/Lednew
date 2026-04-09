@@ -102,7 +102,6 @@ export function DrawingSidebar({ readOnly = false }: DrawingSidebarProps) {
   const store = useDrawingBuilderStore();
   const { screens, mounts, mediaPlayers, receptacleBoxes, loading } = useDrawingInventory();
 
-  const maxValues = store.selectedScreen && store.selectedReceptacleBox ? store.getMaxValues() : null;
   const isDisabled = readOnly || loading;
 
   return (
@@ -270,7 +269,24 @@ export function DrawingSidebar({ readOnly = false }: DrawingSidebarProps) {
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <span className="text-xs font-mono w-8 text-center">{store.boxCount}</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={store.boxCount}
+                    disabled={readOnly}
+                    onChange={(e) => {
+                      const next = parseInt(e.target.value, 10);
+                      if (!Number.isNaN(next)) {
+                        store.setBoxCount(next);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const next = Math.max(1, parseInt(e.target.value || '1', 10));
+                      store.setBoxCount(next);
+                    }}
+                    className="h-6 w-16 text-center px-1 py-0 font-mono"
+                  />
                   <Button variant="outline" size="icon" className="h-6 w-6" onClick={store.incrementBoxCount} disabled={readOnly}>
                     <Plus className="h-3 w-3" />
                   </Button>
@@ -281,42 +297,9 @@ export function DrawingSidebar({ readOnly = false }: DrawingSidebarProps) {
                 <Label className="text-xs">Column Layout</Label>
                 <Switch checked={store.isColumnLayout} onCheckedChange={() => store.toggleColumnLayout()} disabled={readOnly} />
               </div>
-
-              <NumberStepper
-                label="Bottom Distance"
-                value={store.bottomDistance}
-                onChange={store.setBottomDistance}
-                step={0.5}
-                max={maxValues?.maxBottomDistance ?? 100}
-                disabled={readOnly}
-              />
-
-              <NumberStepper
-                label="Top Distance"
-                value={store.topDistance}
-                onChange={store.setTopDistance}
-                step={0.5}
-                max={maxValues?.maxTopDistance ?? 100}
-                disabled={readOnly}
-              />
-
-              <NumberStepper
-                label="Left Distance"
-                value={store.leftDistance}
-                onChange={store.setLeftDistance}
-                step={0.5}
-                max={maxValues?.maxLeftDistance ?? 100}
-                disabled={readOnly}
-              />
-
-              <NumberStepper
-                label="Box Gap"
-                value={store.boxGap}
-                onChange={store.setBoxGap}
-                step={0.5}
-                max={maxValues?.maxBoxGap ?? 100}
-                disabled={readOnly}
-              />
+              <p className="text-xs text-slate-500">
+                Drag receptacle boxes directly on the canvas to position them.
+              </p>
             </div>
           </Section>
 

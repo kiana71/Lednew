@@ -13,7 +13,7 @@ export interface GoogleSheetsScreenRow {
   'Height': string;
   'Width': string;
   'Depth': string;
-  'Pseudonym': string;
+  'Alias': string;
 }
 
 export interface ImportResult {
@@ -162,8 +162,8 @@ export function importScreensFromGoogleSheets(csvText: string, delimiter: string
         const rowNumber = index + 2; // +2 because index starts at 0 and we skip header
         
         // Validate required fields
-        if (!row.Pseudonym?.trim()) {
-          errors.push(`Row ${rowNumber}: Pseudonym is required`);
+        if (!row.Alias?.trim()) {
+          errors.push(`Row ${rowNumber}: Alias is required`);
           return;
         }
         
@@ -183,7 +183,7 @@ export function importScreensFromGoogleSheets(csvText: string, delimiter: string
         
         const screen: Partial<Screen> = {
           type: 'screen',
-          alias: row.Pseudonym.trim(),
+          alias: row.Alias.trim(),
           manufacturer: row['Screen MFR']?.trim() || 'Unknown',
           model: row.Make?.trim() || 'Unknown',
           sizeInInch: sizeInInch > 0 ? sizeInInch : undefined,
@@ -224,7 +224,7 @@ export function importScreensFromGoogleSheets(csvText: string, delimiter: string
  * Download template CSV for screens
  */
 export function downloadScreensTemplate() {
-  const headers = ['Screen MFR', 'Make', 'Screen Size', 'Height', 'Width', 'Depth', 'Pseudonym'];
+  const headers = ['Screen MFR', 'Make', 'Screen Size', 'Height', 'Width', 'Depth', 'Alias'];
   const exampleRow = ['Samsung', 'QN55Q80C', '55', '27.2 in', '48.4 in', '1.2 in', 'Office Display 55"'];
   
   const csv = [

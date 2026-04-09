@@ -66,7 +66,7 @@ export function MediaPlayerFormDialog({ open, onOpenChange, mediaPlayer, onSubmi
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-2"><Label htmlFor="alias">Pseudonym *</Label><Input id="alias" value={formData.alias} onChange={(e) => setFormData({ ...formData, alias: e.target.value })} required placeholder="e.g., BrightSign 4K Player" /></div>
+              <div className="col-span-2 space-y-2"><Label htmlFor="alias">Alias *</Label><Input id="alias" value={formData.alias} onChange={(e) => setFormData({ ...formData, alias: e.target.value })} required placeholder="e.g., BrightSign 4K Player" /></div>
               <div className="space-y-2"><Label htmlFor="model">MFG. Part *</Label><Input id="model" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} required placeholder="e.g., XT1144" /></div>
               <div className="space-y-2"><Label htmlFor="manufacturer">Make</Label><Input id="manufacturer" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} placeholder="e.g., BrightSign" /></div>
               <div className="col-span-2 pt-4">

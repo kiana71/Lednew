@@ -21,10 +21,11 @@ import {
   DimensionBoxes,
 } from './canvas';
 
-export function DrawingCanvas() {
+export function DrawingCanvas({ readOnly = false }: { readOnly?: boolean }) {
   const store = useDrawingBuilderStore();
   const layout = store.getLayout();
   const canRender = store.canRender();
+  const svgRef = React.useRef<SVGSVGElement | null>(null);
 
   const {
     screenX,
@@ -85,6 +86,7 @@ export function DrawingCanvas() {
         {/* SVG container — stretches to fill */}
         <div className="flex-1 min-w-0 relative">
           <svg
+            ref={svgRef}
             className="absolute inset-0 w-full h-full"
             viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
             preserveAspectRatio="xMidYMid meet"
@@ -109,9 +111,6 @@ export function DrawingCanvas() {
                 isEdgeToEdge={store.isEdgeToEdge}
               />
             )}
-
-            {/* Receptacle Boxes */}
-            {store.showReceptacleBoxes && <ReceptacleBoxes boxes={store.receptacleBoxes} />}
 
             {/* Niche */}
             {store.isNiche && (
@@ -141,6 +140,17 @@ export function DrawingCanvas() {
 
             {/* Screen (main rectangle) */}
             <ScreenElement x={screenX} y={screenY} width={screenWidthPx} height={screenHeightPx} />
+
+            {/* Receptacle Boxes (drawn above screen so pointer events work for dragging) */}
+            {store.showReceptacleBoxes && (
+              <ReceptacleBoxes
+                boxes={store.receptacleBoxes}
+                svgRef={svgRef}
+                readOnly={readOnly}
+                boundary={layout.boundary}
+                scaleFactor={layout.scaleFactor}
+              />
+            )}
 
             {/* Center Lines */}
             {store.showCenterLines && (

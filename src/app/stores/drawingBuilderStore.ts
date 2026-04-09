@@ -50,6 +50,15 @@ export interface DrawingBuilderState {
   isColumnLayout: boolean;
   receptacleBoxes: ReceptacleBoxInstance[];
 
+  /**
+   * When true, `receptacleBoxes` contains saved user-adjusted positions.
+   * We should not auto-recompute them while restoring a snapshot.
+   */
+  hasCustomReceptacleBoxPositions: boolean;
+
+  /** Internal flag used to prevent recomputation during snapshot restore. */
+  restoringFromSnapshot: boolean;
+
   // Visibility
   showFloorLine: boolean;
   showCenterLines: boolean;
@@ -113,6 +122,12 @@ export interface DrawingBuilderState {
   /** Maximum allowed values for receptacle box settings (boundary enforcement). */
   getMaxValues: () => MaxValues;
 
+  /**
+   * Current "ratio calculation" slots for receptacle boxes (snapping targets).
+   * Positions are computed from the existing layout math in `drawingCalculations.ts`.
+   */
+  getReceptacleBoxSlots: () => BoxPosition[];
+
   /** Whether the drawing is in a "ready" state (screen + mount selected). */
   canRender: () => boolean;
 
@@ -121,6 +136,12 @@ export interface DrawingBuilderState {
 
   /** Restore state from a saved snapshot. */
   restore: (snapshot: DrawingBuilderSnapshot) => void;
+
+  /**
+   * Snap a dragged box to the nearest "slot" produced by ratio calculation.
+   * If another box already occupies that slot, swap the positions.
+   */
+  snapReceptacleBoxToNearestSlot: (boxId: number, targetX: number, targetY: number) => void;
 
   /** Reset the entire store to default values (clean slate for new drawings). */
   reset: () => void;
@@ -152,6 +173,9 @@ export interface DrawingBuilderSnapshot {
   showSideView: boolean;
   notes: string;
   drawingTitle: string;
+
+  // Persist user-adjusted receptacle box positions (draggable support).
+  receptacleBoxes?: ReceptacleBoxInstance[];
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -227,6 +251,8 @@ export const useDrawingBuilderStore = create<DrawingBuilderState>((set, get) => 
   boxCount: 1,
   isColumnLayout: false,
   receptacleBoxes: [],
+  hasCustomReceptacleBoxPositions: false,
+  restoringFromSnapshot: false,
 
   showFloorLine: true,
   showCenterLines: true,
@@ -243,21 +269,46 @@ export const useDrawingBuilderStore = create<DrawingBuilderState>((set, get) => 
   // ── Selection setters ────────────────────────────────────────────────
 
   setSelectedScreen: (s) => {
-    set({ selectedScreen: s });
-    // Recompute boxes after screen change (boundary changes)
-    setTimeout(() => get().refreshBoxPositions(), 0);
+    const isRestoring = get().restoringFromSnapshot;
+    set((st) => ({
+      selectedScreen: s,
+      hasCustomReceptacleBoxPositions: isRestoring ? st.hasCustomReceptacleBoxPositions : false,
+    }));
+    // Recompute boxes after screen change (boundary changes) unless we are restoring.
+    if (!isRestoring) setTimeout(() => get().refreshBoxPositions(), 0);
+
+    // When restoring custom positions, wait until all selections are present before allowing recompute.
+    if (get().restoringFromSnapshot && get().hasCustomReceptacleBoxPositions && get().selectedScreen && get().selectedMount && get().selectedReceptacleBox) {
+      set({ restoringFromSnapshot: false });
+    }
   },
 
   setSelectedMount: (m) => {
-    set({ selectedMount: m });
-    setTimeout(() => get().refreshBoxPositions(), 0);
+    const isRestoring = get().restoringFromSnapshot;
+    set((st) => ({
+      selectedMount: m,
+      hasCustomReceptacleBoxPositions: isRestoring ? st.hasCustomReceptacleBoxPositions : false,
+    }));
+    if (!isRestoring) setTimeout(() => get().refreshBoxPositions(), 0);
+
+    if (get().restoringFromSnapshot && get().hasCustomReceptacleBoxPositions && get().selectedScreen && get().selectedMount && get().selectedReceptacleBox) {
+      set({ restoringFromSnapshot: false });
+    }
   },
 
   setSelectedMediaPlayer: (mp) => set({ selectedMediaPlayer: mp }),
 
   setSelectedReceptacleBox: (rb) => {
-    set({ selectedReceptacleBox: rb });
-    setTimeout(() => get().refreshBoxPositions(), 0);
+    const isRestoring = get().restoringFromSnapshot;
+    set((st) => ({
+      selectedReceptacleBox: rb,
+      hasCustomReceptacleBoxPositions: isRestoring ? st.hasCustomReceptacleBoxPositions : false,
+    }));
+    if (!isRestoring) setTimeout(() => get().refreshBoxPositions(), 0);
+
+    if (get().restoringFromSnapshot && get().hasCustomReceptacleBoxPositions && get().selectedScreen && get().selectedMount && get().selectedReceptacleBox) {
+      set({ restoringFromSnapshot: false });
+    }
   },
 
   // ── Configuration toggles ───────────────────────────────────────────
@@ -381,7 +432,11 @@ export const useDrawingBuilderStore = create<DrawingBuilderState>((set, get) => 
   refreshBoxPositions: () => {
     const state = get();
     const boxes = recomputeBoxes(state);
-    set({ receptacleBoxes: boxes, boxCount: boxes.length || state.boxCount });
+    set({
+      receptacleBoxes: boxes,
+      boxCount: boxes.length || state.boxCount,
+      hasCustomReceptacleBoxPositions: false,
+    });
   },
 
   // ── Derived getters ────────────────────────────────────────────────
@@ -392,6 +447,21 @@ export const useDrawingBuilderStore = create<DrawingBuilderState>((set, get) => 
     const state = get();
     const layout = computeLayout(state);
     return calculateMaxValues(buildBoxLayoutParams(state, layout.boundary, layout.scaleFactor));
+  },
+
+  getReceptacleBoxSlots: () => {
+    const state = get();
+    if (!state.selectedReceptacleBox || !state.selectedScreen) return [];
+
+    const layout = computeLayout(state);
+    const baseParams = buildBoxLayoutParams(state, layout.boundary, layout.scaleFactor);
+    const { maxBoxes } = calculateBoxPositions(baseParams);
+    if (maxBoxes <= 0) return [];
+
+    // Build the full slot grid independent of the currently selected count.
+    const fullParams = { ...baseParams, boxCount: maxBoxes };
+    const { positions } = calculateBoxPositions(fullParams);
+    return positions.slice(0, maxBoxes);
   },
 
   canRender: () => {
@@ -427,10 +497,12 @@ export const useDrawingBuilderStore = create<DrawingBuilderState>((set, get) => 
       showSideView: s.showSideView,
       notes: s.notes,
       drawingTitle: s.drawingTitle,
+      receptacleBoxes: s.receptacleBoxes,
     };
   },
 
   restore: (snap) => {
+    const hasSavedBoxes = Array.isArray(snap.receptacleBoxes) && snap.receptacleBoxes.length > 0;
     set({
       isHorizontal: snap.isHorizontal,
       isNiche: snap.isNiche,
@@ -451,9 +523,50 @@ export const useDrawingBuilderStore = create<DrawingBuilderState>((set, get) => 
       showSideView: snap.showSideView,
       notes: snap.notes,
       drawingTitle: snap.drawingTitle,
+
+      // Persisted draggable positions (if present). We skip recompute while restoring.
+      receptacleBoxes: hasSavedBoxes ? snap.receptacleBoxes! : [],
+      hasCustomReceptacleBoxPositions: hasSavedBoxes,
+      restoringFromSnapshot: hasSavedBoxes,
     });
-    // Inventory items are restored separately by DrawingStudio
-    setTimeout(() => get().refreshBoxPositions(), 0);
+    // Inventory items are restored separately by DrawingStudio. We don't recompute here
+    // because snapshot positions should win (when present).
+  },
+
+  snapReceptacleBoxToNearestSlot: (boxId, targetX, targetY) => {
+    const state = get();
+    if (!state.selectedReceptacleBox || !state.selectedScreen) return;
+    const box = state.receptacleBoxes.find((b) => b.id === boxId);
+    if (!box) return;
+    const layout = computeLayout(state);
+    const boundary = layout.boundary;
+
+    // Match old stepper precision: 0.5" movement units.
+    const stepPx = 0.5 * layout.scaleFactor;
+    const maxX = boundary.x + boundary.width - box.width;
+    const maxY = boundary.y + boundary.height - box.height;
+
+    const quantize = (value: number, min: number, max: number) => {
+      if (stepPx <= 0) return Math.max(min, Math.min(max, value));
+      let q = min + Math.round((value - min) / stepPx) * stepPx;
+
+      // Allow drag to hit absolute edges even if they are not exact step multiples.
+      if (Math.abs(value - max) <= stepPx / 2) q = max;
+      if (Math.abs(value - min) <= stepPx / 2) q = min;
+
+      return Math.max(min, Math.min(max, q));
+    };
+
+    const snappedX = quantize(targetX, boundary.x, maxX);
+    const snappedY = quantize(targetY, boundary.y, maxY);
+
+    set((st) => ({
+      ...st,
+      hasCustomReceptacleBoxPositions: true,
+      receptacleBoxes: st.receptacleBoxes.map((b) =>
+        b.id === boxId ? { ...b, x: snappedX, y: snappedY } : b,
+      ),
+    }));
   },
 
   reset: () => {
@@ -474,6 +587,8 @@ export const useDrawingBuilderStore = create<DrawingBuilderState>((set, get) => 
       boxCount: 1,
       isColumnLayout: false,
       receptacleBoxes: [],
+      hasCustomReceptacleBoxPositions: false,
+      restoringFromSnapshot: false,
       showFloorLine: true,
       showCenterLines: true,
       showWoodBacking: true,

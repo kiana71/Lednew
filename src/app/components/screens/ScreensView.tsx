@@ -135,7 +135,7 @@ export function ScreensView() {
       return;
     }
 
-    const headers = ['Screen MFR', 'Make', 'Screen Size', 'Height', 'Width', 'Depth', 'Pseudonym'];
+    const headers = ['Screen MFR', 'Make', 'Screen Size', 'Height', 'Width', 'Depth', 'Alias'];
     const rows = screens.map((s) => [
       s.manufacturer || '',
       s.model || '',

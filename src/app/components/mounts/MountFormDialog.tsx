@@ -69,7 +69,7 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-2"><Label htmlFor="alias">Pseudonym *</Label><Input id="alias" value={formData.alias} onChange={(e) => setFormData({ ...formData, alias: e.target.value })} required placeholder="e.g., Peerless Flat Wall Mount" /></div>
+              <div className="col-span-2 space-y-2"><Label htmlFor="alias">Alias *</Label><Input id="alias" value={formData.alias} onChange={(e) => setFormData({ ...formData, alias: e.target.value })} required placeholder="e.g., Peerless Flat Wall Mount" /></div>
               <div className="space-y-2"><Label htmlFor="model">MFG. Part *</Label><Input id="model" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} required placeholder="e.g., SF650" /></div>
               <div className="space-y-2"><Label htmlFor="manufacturer">Brand</Label><Input id="manufacturer" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} placeholder="e.g., Peerless-AV" /></div>
               <div className="space-y-2"><Label htmlFor="maxLoadLbs">Maximum Load (lbs)</Label><Input id="maxLoadLbs" type="number" step="0.1" value={formData.maxLoadLbs} onChange={(e) => setFormData({ ...formData, maxLoadLbs: e.target.value })} placeholder="e.g., 150" /></div>

@@ -85,7 +85,7 @@ export function MediaPlayersView() {
 
   const handleExport = () => {
     if (players.length === 0) { toast.error('No media players to export'); return; }
-    const headers = ['MFG. PART', 'Make', 'Height', 'Width', 'Depth', 'Pseudonym'];
+    const headers = ['MFG. PART', 'Make', 'Height', 'Width', 'Depth', 'Alias'];
     const rows = players.map((p) => [p.model || '', p.manufacturer || '', `${p.dimensions.height}`, `${p.dimensions.width}`, `${p.dimensions.depth}`, p.alias || '']);
     const tsv = [headers.join('\t'), ...rows.map((r) => r.join('\t'))].join('\n');
     const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
@@ -96,7 +96,7 @@ export function MediaPlayersView() {
   };
 
   const columns: Column<MediaPlayer>[] = [
-    { key: 'alias', label: 'Pseudonym', width: '22%' },
+    { key: 'alias', label: 'Alias', width: '22%' },
     { key: 'model', label: 'MFG. Part', width: '18%' },
     { key: 'manufacturer', label: 'Make', width: '18%' },
     { key: 'dimensions', label: 'Height', render: (i) => `${i.dimensions.height} ${i.dimensions.unit}`, width: '14%' },
@@ -111,7 +111,7 @@ export function MediaPlayersView() {
       {!loading && players.length > 0 && <MediaPlayerStats total={players.length} makes={uniqueMakes} />}
 
       <div className="flex-1 min-h-0">
-        <DatabaseTable title="Media Players" columns={columns} data={players} loading={loading} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} onExport={handleExport} emptyMessage="No media players in database. Add your first media player to get started." searchPlaceholder="Search by pseudonym, part number, make..."
+        <DatabaseTable title="Media Players" columns={columns} data={players} loading={loading} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} onExport={handleExport} emptyMessage="No media players in database. Add your first media player to get started." searchPlaceholder="Search by alias, part number, make..."
           headerActions={<Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2"><FileDown className="size-4" />Import</Button>} />
       </div>
 

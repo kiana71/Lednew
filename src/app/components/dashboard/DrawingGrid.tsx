@@ -58,12 +58,12 @@ export function DrawingGrid({
           We couldn&apos;t find any drawings matching your search criteria. Try adjusting your
           filters or create a new drawing.
         </p>
-        {/* {onNewDrawing && (
+        {onNewDrawing && (
           <Button onClick={onNewDrawing}>
             <FileText className="mr-2 size-4" />
             Create New Drawing
           </Button>
-        )} */}
+        )}
       </div>
     );
   }

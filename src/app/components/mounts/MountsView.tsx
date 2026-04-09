@@ -85,7 +85,7 @@ export function MountsView() {
 
   const handleExport = () => {
     if (mounts.length === 0) { toast.error('No mounts to export'); return; }
-    const headers = ['MFG. PART', 'Brand', 'Maximum Load (lbs)', 'Width (in)', 'Height (in)', 'Depth (in)', 'Clearance needed around screen', 'Pseudonym'];
+    const headers = ['MFG. PART', 'Brand', 'Maximum Load (lbs)', 'Width (in)', 'Height (in)', 'Depth (in)', 'Clearance needed around screen', 'Alias'];
     const rows = mounts.map((m) => [m.model || '', m.manufacturer || '', m.maxLoadLbs ? `${m.maxLoadLbs}` : '', `${m.dimensions.width}`, `${m.dimensions.height}`, `${m.dimensions.depth}`, m.clearance || '', m.alias || '']);
     const tsv = [headers.join('\t'), ...rows.map((r) => r.join('\t'))].join('\n');
     const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
@@ -96,7 +96,7 @@ export function MountsView() {
   };
 
   const columns: Column<Mount>[] = [
-    { key: 'alias', label: 'Pseudonym', width: '18%' },
+    { key: 'alias', label: 'Alias', width: '18%' },
     { key: 'model', label: 'MFG. Part', width: '14%' },
     { key: 'manufacturer', label: 'Brand', width: '14%' },
     { key: 'maxLoadLbs', label: 'Max Load', render: (i) => (i.maxLoadLbs ? `${i.maxLoadLbs} lbs` : '-'), width: '10%' },
@@ -113,7 +113,7 @@ export function MountsView() {
       {!loading && mounts.length > 0 && <MountStats total={mounts.length} brands={uniqueBrands} averageLoad={avgLoad} />}
 
       <div className="flex-1 min-h-0">
-        <DatabaseTable title="Mounts" columns={columns} data={mounts} loading={loading} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} onExport={handleExport} emptyMessage="No mounts in database. Add your first mount to get started." searchPlaceholder="Search by pseudonym, part number, brand..."
+        <DatabaseTable title="Mounts" columns={columns} data={mounts} loading={loading} onAdd={handleAdd} onEdit={handleEdit} onDelete={handleDelete} onExport={handleExport} emptyMessage="No mounts in database. Add your first mount to get started." searchPlaceholder="Search by alias, part number, brand..."
           headerActions={<Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2"><FileDown className="size-4" />Import</Button>} />
       </div>
 

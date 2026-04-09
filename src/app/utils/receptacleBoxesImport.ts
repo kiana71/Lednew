@@ -13,7 +13,7 @@ export interface GoogleSheetsReceptacleBoxRow {
   'Width (in)': string;
   'Height (in)': string;
   'Depth (in)': string;
-  'Pseudonym': string;
+  'Alias': string;
 }
 
 /**
@@ -62,8 +62,8 @@ export function importReceptacleBoxesFromGoogleSheets(csvText: string, delimiter
       try {
         const rowNumber = index + 2;
 
-        if (!row.Pseudonym?.trim()) {
-          errors.push(`Row ${rowNumber}: Pseudonym is required`);
+        if (!row.Alias?.trim()) {
+          errors.push(`Row ${rowNumber}: Alias is required`);
           return;
         }
 
@@ -73,7 +73,7 @@ export function importReceptacleBoxesFromGoogleSheets(csvText: string, delimiter
 
         const box: Partial<ReceptacleBox> = {
           type: 'receptacleBox',
-          alias: row.Pseudonym.trim(),
+          alias: row.Alias.trim(),
           model: row['MFG. PART']?.trim() || 'Unknown',
           manufacturer: row.Brand?.trim() || 'Unknown',
           dimensions: {
@@ -119,7 +119,7 @@ export function downloadReceptacleBoxesTemplate() {
     'Width (in)',
     'Height (in)',
     'Depth (in)',
-    'Pseudonym',
+    'Alias',
   ];
   const exampleRow = [
     'WB-100',
