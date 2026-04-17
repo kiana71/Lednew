@@ -86,10 +86,12 @@ const DrawingContext = createContext<DrawingContextType | undefined>(undefined);
 
 export const DrawingProvider = ({ 
   children, 
-  initialState 
+  initialState,
+  readOnly = false,
 }: { 
   children: ReactNode; 
-  initialState?: Partial<AppState> 
+  initialState?: Partial<AppState>;
+  readOnly?: boolean;
 }) => {
   const [state, setState] = useState<AppState>(() => {
     if (!initialState) return defaultState;
@@ -126,31 +128,38 @@ export const DrawingProvider = ({
 
   // Update helper
   const updateState = (updates: Partial<AppState>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, ...updates }));
   };
 
   // Specific updaters
   const updateScreen = (updates: Partial<ScreenConfig>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, screen: { ...prev.screen, ...updates } }));
   };
 
   const updateMount = (updates: Partial<MountConfig>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, mount: { ...prev.mount, ...updates } }));
   };
 
   const updateMediaPlayer = (updates: Partial<MediaPlayerConfig>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, mediaPlayer: { ...prev.mediaPlayer, ...updates } }));
   };
 
   const updateGrid = (updates: Partial<GridConfig>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, grid: { ...prev.grid, ...updates } }));
   };
 
   const updateNicheSettings = (updates: Partial<NicheSettings>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, nicheSettings: { ...prev.nicheSettings, ...updates } }));
   };
 
   const addReceptacleBox = (baseBox?: ReceptacleBoxConfig) => {
+    if (readOnly) return '';
     const newBox: ReceptacleBoxConfig = baseBox ? {
       ...baseBox,
       id: crypto.randomUUID(),
@@ -172,6 +181,7 @@ export const DrawingProvider = ({
   };
 
   const updateReceptacleBox = (id: string, updates: Partial<ReceptacleBoxConfig>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({
       ...prev,
       receptacleBoxes: prev.receptacleBoxes.map((box) =>
@@ -181,6 +191,7 @@ export const DrawingProvider = ({
   };
 
   const removeReceptacleBox = (id: string) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({
       ...prev,
       receptacleBoxes: prev.receptacleBoxes.filter((box) => box.id !== id),
@@ -188,10 +199,12 @@ export const DrawingProvider = ({
   };
 
   const updateSettings = (updates: Partial<DrawingSettings>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, settings: { ...prev.settings, ...updates } }));
   };
 
   const addNote = (baseNote?: InstallationNote) => {
+    if (readOnly) return '';
     const newNote: InstallationNote = baseNote ? {
       ...baseNote,
       id: crypto.randomUUID(),
@@ -210,6 +223,7 @@ export const DrawingProvider = ({
   };
 
   const updateNote = (id: string, updates: Partial<InstallationNote>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({
       ...prev,
       notes: prev.notes.map((note) =>
@@ -219,6 +233,7 @@ export const DrawingProvider = ({
   };
 
   const removeNote = (id: string) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({
       ...prev,
       notes: prev.notes.filter((note) => note.id !== id),
@@ -227,14 +242,17 @@ export const DrawingProvider = ({
   };
 
   const selectNote = (id: string | null) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, selectedNoteId: id }));
   };
 
   const updateView = (updates: Partial<AppState['view']>) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({ ...prev, view: { ...prev.view, ...updates } }));
   };
 
   const toggleLayer = (layer: keyof AppState['view']['showLayers']) => {
+    if (readOnly) return;
     setState((prev: AppState) => ({
       ...prev,
       view: {
@@ -248,6 +266,7 @@ export const DrawingProvider = ({
   };
 
   const resetView = () => {
+    if (readOnly) return;
     setState((prev: AppState) => ({
       ...prev,
       view: {
@@ -262,6 +281,7 @@ export const DrawingProvider = ({
     <DrawingContext.Provider
       value={{
         state,
+        readOnly,
         updateState,
         updateScreen,
         updateMount,

@@ -153,6 +153,7 @@ export function DrawingStudio() {
       onBack={handleBack}
       title={drawingTitle}
       onTitleChange={isViewer ? undefined : setDrawingTitle}
+      readOnly={isViewer}
     />
   );
 }

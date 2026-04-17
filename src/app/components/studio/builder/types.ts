@@ -107,6 +107,7 @@ export interface AppState {
 
 export interface DrawingContextType {
   state: AppState;
+  readOnly: boolean;
   updateState: (updates: Partial<AppState>) => void;
   updateScreen: (updates: Partial<ScreenConfig>) => void;
   updateMount: (updates: Partial<MountConfig>) => void;

@@ -11,7 +11,6 @@ import { Plus, Minus, Loader2, Copy } from 'lucide-react';
 import { Switch } from '../../ui/switch';
 import { inventoryService } from '../../../services/InventoryService';
 import { Screen, Mount, MediaPlayer, ReceptacleBox } from '../../../types';
-
 import { RichTextEditor } from './RichTextEditor';
 
 export function Sidebar() {
@@ -31,7 +30,8 @@ export function Sidebar() {
     addNote,
     updateNote,
     removeNote,
-    selectNote
+    selectNote,
+    readOnly,
   } = useDrawingContext();
 
   // Inventory State
@@ -200,7 +200,7 @@ export function Sidebar() {
   const currentSidebarNote = state.notes.find(n => n.id === sidebarSelectedNoteId);
 
   return (
-    <div className="p-4 space-y-6">
+    <div className={`p-4 space-y-6 ${readOnly ? 'opacity-70 pointer-events-none select-none' : ''}`}>
       {/* 0. Document Info */}
       <div className="space-y-4">
         <h3 className="font-semibold text-sm text-slate-900">Document Info</h3>
@@ -243,7 +243,6 @@ export function Sidebar() {
       </div>
 
       <Separator/>
-
       {/* 2. Device Selection */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -389,7 +388,7 @@ export function Sidebar() {
       <div className="space-y-4">
         <h3 className="font-semibold text-sm text-slate-900">Video Wall Grid</h3>
         <div className="flex items-center gap-4">
-          <div className="flex-1 space-y-1">
+          {/* <div className="flex-1 space-y-1">
             <Label className="text-xs">Rows</Label>
             <div className="flex items-center gap-2">
               <Button 
@@ -397,6 +396,7 @@ export function Sidebar() {
                 size="icon" 
                 className="h-8 w-8"
                 onClick={() => updateGrid({ rows: Math.max(1, state.grid.rows - 1) })}
+                disabled={readOnly}
               >
                 <Minus className="size-3" />
               </Button>
@@ -406,12 +406,13 @@ export function Sidebar() {
                 size="icon" 
                 className="h-8 w-8"
                 onClick={() => updateGrid({ rows: state.grid.rows + 1 })}
+                disabled={readOnly}
               >
                 <Plus className="size-3" />
               </Button>
             </div>
-          </div>
-          <div className="flex-1 space-y-1">
+          </div> */}
+          {/* <div className="flex-1 space-y-1">
             <Label className="text-xs">Cols</Label>
             <div className="flex items-center gap-2">
               <Button 
@@ -419,6 +420,7 @@ export function Sidebar() {
                 size="icon" 
                 className="h-8 w-8"
                 onClick={() => updateGrid({ cols: Math.max(1, state.grid.cols - 1) })}
+                disabled={readOnly}
               >
                 <Minus className="size-3" />
               </Button>
@@ -428,11 +430,12 @@ export function Sidebar() {
                 size="icon" 
                 className="h-8 w-8"
                 onClick={() => updateGrid({ cols: state.grid.cols + 1 })}
+                disabled={readOnly}
               >
                 <Plus className="size-3" />
               </Button>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -469,6 +472,7 @@ export function Sidebar() {
                 }
               }}
               className="w-full"
+              disabled={readOnly}
             />
           </div>
           <p className="text-[10px] text-slate-500">Distance from floor to center of screen</p>
@@ -484,6 +488,7 @@ export function Sidebar() {
           <Switch 
             checked={state.settings.woodBacking} 
             onCheckedChange={(checked) => updateSettings({ woodBacking: checked })} 
+            disabled={readOnly}
           />
         </div>
         
@@ -520,6 +525,7 @@ export function Sidebar() {
                   min={0}
                   value={state.nicheSettings.clearanceSides} 
                   onChange={(e) => updateNicheSettings({ clearanceSides: Math.max(0, Number(e.target.value)) })}
+                  disabled={readOnly}
                 />
               </div>
               <div className="space-y-1">
@@ -529,6 +535,7 @@ export function Sidebar() {
                   min={0}
                   value={state.nicheSettings.clearanceTopBottom} 
                   onChange={(e) => updateNicheSettings({ clearanceTopBottom: Math.max(0, Number(e.target.value)) })}
+                  disabled={readOnly}
                 />
               </div>
               <div className="space-y-1 col-span-2">
@@ -538,6 +545,7 @@ export function Sidebar() {
                   min={0}
                   value={state.nicheSettings.depthVariant} 
                   onChange={(e) => updateNicheSettings({ depthVariant: Math.max(0, Number(e.target.value)) })}
+                  disabled={readOnly}
                 />
               </div>
             </div>
@@ -559,6 +567,7 @@ export function Sidebar() {
               setSelectedBoxId(newId);
             }}
             className="h-7 text-xs"
+            disabled={readOnly}
           >
             <Plus className="size-3 mr-1" /> Add
           </Button>
@@ -584,6 +593,7 @@ export function Sidebar() {
                     setSelectedBoxId(newId);
                   }}
                   title="Duplicate box"
+                  disabled={readOnly}
                 >
                   <Copy className="size-3" />
                 </Button>
@@ -596,6 +606,7 @@ export function Sidebar() {
                     removeReceptacleBox(box.id);
                     if (selectedBoxId === box.id) setSelectedBoxId(null);
                   }}
+                  disabled={readOnly}
                 >
                   <Minus className="size-3" />
                 </Button>
@@ -637,6 +648,7 @@ export function Sidebar() {
                     min={0}
                     value={currentBox.width} 
                     onChange={(e) => updateReceptacleBox(selectedBoxId, { width: Math.max(0, Number(e.target.value)) })}
+                    disabled={readOnly}
                   />
                 </div>
 
@@ -647,6 +659,7 @@ export function Sidebar() {
                     min={0}
                     value={currentBox.height} 
                     onChange={(e) => updateReceptacleBox(selectedBoxId, { height: Math.max(0, Number(e.target.value)) })}
+                    disabled={readOnly}
                   />
                 </div>
 
@@ -662,6 +675,7 @@ export function Sidebar() {
                       const val = Math.max(0, Math.min(Number(e.target.value), maxPosX));
                       updateReceptacleBox(selectedBoxId, { posX: val });
                     }}
+                    disabled={readOnly}
                   />
                 </div>
                 
@@ -677,6 +691,7 @@ export function Sidebar() {
                       const val = Math.max(0, Math.min(Number(e.target.value), maxPosY));
                       updateReceptacleBox(selectedBoxId, { posY: val });
                     }}
+                    disabled={readOnly}
                   />
                 </div>
               </div>
@@ -695,6 +710,7 @@ export function Sidebar() {
               setSidebarSelectedNoteId(newId);
             }}
             className="h-7 text-xs"
+            disabled={readOnly}
           >
             <Plus className="size-3 mr-1" /> Add
           </Button>
@@ -720,6 +736,7 @@ export function Sidebar() {
                     setSidebarSelectedNoteId(newId);
                   }}
                   title="Duplicate note"
+                  disabled={readOnly}
                 >
                   <Copy className="size-3" />
                 </Button>
@@ -732,6 +749,7 @@ export function Sidebar() {
                     removeNote(note.id);
                     if (sidebarSelectedNoteId === note.id) setSidebarSelectedNoteId(null);
                   }}
+                  disabled={readOnly}
                 >
                   <Minus className="size-3" />
                 </Button>
@@ -747,6 +765,7 @@ export function Sidebar() {
               <Input 
                 value={currentSidebarNote.name} 
                 onChange={(e) => updateNote(sidebarSelectedNoteId, { name: e.target.value })}
+                disabled={readOnly}
               />
             </div>
             <div className="space-y-1">

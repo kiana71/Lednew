@@ -18,16 +18,18 @@ interface DrawingBuilderProps {
   onBack?: () => void;
   title?: string;
   onTitleChange?: (title: string) => void;
+  readOnly?: boolean;
 }
 
-export function DrawingBuilder({ initialState, onSave, onBack, title = 'Drawing Builder', onTitleChange }: DrawingBuilderProps) {
+export function DrawingBuilder({ initialState, onSave, onBack, title = 'Drawing Builder', onTitleChange, readOnly = false }: DrawingBuilderProps) {
   return (
-    <DrawingProvider initialState={initialState}>
+    <DrawingProvider initialState={initialState} readOnly={readOnly}>
       <DrawingBuilderContent 
         onSave={onSave} 
         onBack={onBack} 
         title={title}
         onTitleChange={onTitleChange}
+        readOnly={readOnly}
       />
     </DrawingProvider>
   );
@@ -38,11 +40,13 @@ function DrawingBuilderContent({
   onBack, 
   title,
   onTitleChange,
+  readOnly,
 }: { 
   onSave?: (state: AppState, title: string) => void; 
   onBack?: () => void; 
   title: string;
   onTitleChange?: (title: string) => void;
+  readOnly?: boolean;
 }) {
   const { state, updateSettings } = useDrawingContext();
   const [isExporting, setIsExporting] = useState(false);
@@ -128,6 +132,7 @@ function DrawingBuilderContent({
             value={title}
             onChange={(e) => onTitleChange?.(e.target.value)}
             placeholder="Untitled Drawing"
+            disabled={readOnly}
           />
         </div>
         <div className="flex items-center gap-2">
@@ -139,10 +144,14 @@ function DrawingBuilderContent({
             {isExporting ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Download className="mr-2 size-4" />}
             Export PDF
           </Button>
-          <Button size="sm" onClick={handleSave}>
-            <Save className="mr-2 size-4" />
-            Save
-          </Button>
+          {!readOnly && (
+            <Button size="sm" 
+            onClick={handleSave}
+            >
+              <Save className="mr-2 size-4" />
+              Save
+            </Button>
+          )}
         </div>
       </header>
 
@@ -164,7 +173,7 @@ function DrawingBuilderContent({
         </main>
 
         {/* Right Sidebar */}
-        <aside className="w-80 border-l bg-white flex flex-col overflow-y-auto print:hidden hidden">
+        <aside className="w-80 border-l bg-white flex flex-col overflow-y-auto print:hidden">
           <Sidebar />
         </aside>
       </div>

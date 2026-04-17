@@ -22,7 +22,7 @@ import {
 } from "../../ui/tooltip";
 
 export function Toolbar() {
-  const { state, updateView, resetView, toggleLayer } = useDrawingContext();
+  const { state, readOnly, updateView, resetView, toggleLayer } = useDrawingContext();
   const { zoom, showLayers } = state.view;
 
   const handleZoomIn = () => updateView({ zoom: Math.min(5, zoom + 0.1) });
@@ -34,7 +34,7 @@ export function Toolbar() {
         <div className="flex items-center gap-1 border-r pr-2 mr-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleZoomOut}>
+              <Button variant="ghost" size="icon" onClick={handleZoomOut} disabled={readOnly}>
                 <ZoomOut className="size-4" />
               </Button>
             </TooltipTrigger>
@@ -47,7 +47,7 @@ export function Toolbar() {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={handleZoomIn}>
+              <Button variant="ghost" size="icon" onClick={handleZoomIn} disabled={readOnly}>
                 <ZoomIn className="size-4" />
               </Button>
             </TooltipTrigger>
@@ -56,7 +56,7 @@ export function Toolbar() {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={resetView}>
+              <Button variant="ghost" size="icon" onClick={resetView} disabled={readOnly}>
                 <Maximize className="size-4" />
               </Button>
             </TooltipTrigger>
@@ -75,7 +75,7 @@ export function Toolbar() {
                   onPressedChange={() => toggleLayer('niche')}
                   aria-label="Toggle Niche"
                   className="data-[state=on]:bg-blue-100 data-[state=on]:text-blue-700"
-                  disabled={state.mode !== 'NICHE' && state.mode !== 'TABLE_NICHE'}
+                  disabled={readOnly || (state.mode !== 'NICHE' && state.mode !== 'TABLE_NICHE')}
                 >
                   <Layers className="size-4" />
                 </Toggle>
@@ -92,6 +92,7 @@ export function Toolbar() {
                   onPressedChange={() => toggleLayer('centerLine')}
                   aria-label="Toggle Center Line"
                   className="data-[state=on]:bg-indigo-100 data-[state=on]:text-indigo-700"
+                  disabled={readOnly}
                 >
                   <AlignVerticalSpaceAround className="size-4" />
                 </Toggle>
@@ -108,6 +109,7 @@ export function Toolbar() {
                   onPressedChange={() => toggleLayer('dimensions')}
                   aria-label="Toggle Dimensions"
                   className="data-[state=on]:bg-green-100 data-[state=on]:text-green-700"
+                  disabled={readOnly}
                 >
                   <Ruler className="size-4" />
                 </Toggle>
@@ -124,7 +126,7 @@ export function Toolbar() {
                   onPressedChange={() => toggleLayer('woodBacking')}
                   aria-label="Toggle Wood Backing"
                   className="data-[state=on]:bg-amber-100 data-[state=on]:text-amber-700"
-                  disabled={!state.settings.woodBacking}
+                  disabled={readOnly || !state.settings.woodBacking}
                 >
                   <SquareDashed className="size-4" />
                 </Toggle>
@@ -141,7 +143,7 @@ export function Toolbar() {
                   onPressedChange={() => toggleLayer('sideView')}
                   aria-label="Toggle Side View"
                   className="data-[state=on]:bg-purple-100 data-[state=on]:text-purple-700"
-                  disabled={state.grid.rows > 1 || state.grid.cols > 1 || state.screen.width === 0}
+                  disabled={readOnly || state.grid.rows > 1 || state.grid.cols > 1 || state.screen.width === 0}
                 >
                   <SplitSquareHorizontal className="size-4" />
                 </Toggle>
@@ -158,7 +160,7 @@ export function Toolbar() {
                   onPressedChange={() => toggleLayer('receptacleBox')}
                   aria-label="Toggle Receptacle Box"
                   className="data-[state=on]:bg-red-100 data-[state=on]:text-red-700"
-                  disabled={state.receptacleBoxes.length === 0}
+                  disabled={readOnly || state.receptacleBoxes.length === 0}
                 >
                   <Zap className="size-4" />
                 </Toggle>

@@ -11,6 +11,7 @@ const PAPER_HEIGHT_PX = 816; // 8.5 inches * 96 DPI
 export function Canvas() {
   const { 
     state, 
+    readOnly,
     updateReceptacleBox, 
     orientedScreen,
     scale,
@@ -84,6 +85,7 @@ export function Canvas() {
   };
 
   const handleMouseDown = (e: React.MouseEvent, boxId: string) => {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
     
@@ -249,8 +251,8 @@ export function Canvas() {
           {/* Paper Border/Background */}
           <rect x="0" y="0" width={LETTER_WIDTH} height={LETTER_HEIGHT} fill="white" />
 
-          {/* Welcome Message when no screen/mount selected */}
-          {(screen.width === 0 || screen.height === 0 || state.mount.depth === 0) && (
+          {/* Welcome Message when no screen selected */}
+          {(screen.width === 0 || screen.height === 0) && (
             <g>
               <text
                 x={LETTER_WIDTH / 2}
@@ -270,7 +272,7 @@ export function Canvas() {
                 className="fill-slate-400"
                 style={{ fontSize: '0.12px', fontWeight: 400 }}
               >
-                Please select both a Screen and Mount option to view the layout
+                Please select a Screen option to view the layout
               </text>
             </g>
           )}
@@ -278,7 +280,7 @@ export function Canvas() {
           {/* Drawing Group - Centered */}
           <g transform={`translate(${startX}, ${startY})`}>
             
-            {screen.width > 0 && screen.height > 0 && state.mount.depth > 0 && (
+            {screen.width > 0 && screen.height > 0 && (
               <>
                 {/* Center Line and Floor */}
                 {showLayers.centerLine && (
@@ -532,7 +534,7 @@ export function Canvas() {
               <g 
                 key={box.id}
                 transform={`translate(${contentOffsetX + (box.posX * scale)}, ${contentOffsetY + (box.posY * scale)})`}
-                style={{ cursor: 'grab' }}
+                style={{ cursor: readOnly ? 'default' : 'grab' }}
                 onMouseDown={(e) => handleMouseDown(e, box.id)}
               >
                 {/* Box Background */}
@@ -1065,6 +1067,7 @@ export function Canvas() {
                   <Select 
                     value={state.selectedNoteId || 'none'} 
                     onValueChange={(val) => selectNote(val === 'none' ? null : val)}
+                    disabled={readOnly}
                   >
                     <SelectTrigger className="h-5 w-32 text-[9px] px-1 py-0 bg-transparent border-slate-200">
                       <SelectValue placeholder="Select note" />
