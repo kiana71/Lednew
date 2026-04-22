@@ -388,7 +388,7 @@ export function Sidebar() {
       <div className="space-y-4">
         <h3 className="font-semibold text-sm text-slate-900">Video Wall Grid</h3>
         <div className="flex items-center gap-4">
-          {/* <div className="flex-1 space-y-1">
+          <div className="flex-1 space-y-1">
             <Label className="text-xs">Rows</Label>
             <div className="flex items-center gap-2">
               <Button 
@@ -411,8 +411,8 @@ export function Sidebar() {
                 <Plus className="size-3" />
               </Button>
             </div>
-          </div> */}
-          {/* <div className="flex-1 space-y-1">
+          </div>
+          <div className="flex-1 space-y-1">
             <Label className="text-xs">Cols</Label>
             <div className="flex items-center gap-2">
               <Button 
@@ -435,7 +435,7 @@ export function Sidebar() {
                 <Plus className="size-3" />
               </Button>
             </div>
-          </div> */}
+          </div>
         </div>
       </div>
 
@@ -757,7 +757,6 @@ export function Sidebar() {
             </div>
           ))}
         </div>
-
         {sidebarSelectedNoteId && currentSidebarNote && (
           <div className="space-y-4 pt-2 border-t">
             <div className="space-y-1">

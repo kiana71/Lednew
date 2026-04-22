@@ -765,7 +765,7 @@ export function Canvas() {
                         x1={isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0} 
                         y1={-0.5} 
                         x2={isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0} 
-                        y2={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.2} 
+                        y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.2} 
                         stroke="#94a3b8" 
                         strokeWidth={0.02} 
                         opacity={0.5} // Made wall line more transparent
@@ -788,7 +788,7 @@ export function Canvas() {
                             x={0} 
                             y={-nicheSettings.clearanceTopBottom * scale} 
                             width={totalNicheDepth * scale} 
-                            height={scaledHeight + (nicheSettings.clearanceTopBottom * 2 * scale)} 
+                            height={screenHeight + (nicheSettings.clearanceTopBottom * 2 * scale)} 
                             fill="#e2e8f0" 
                             stroke="#94a3b8" 
                             strokeWidth={0.01} 
@@ -808,17 +808,17 @@ export function Canvas() {
                           <g opacity="0.7">
                             <line 
                               x1={0} 
-                              y1={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.5} 
+                              y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.5} 
                               x2={totalNicheDepth * scale} 
-                              y2={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.5} 
+                              y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.5} 
                               stroke="#64748b" 
                               strokeWidth={0.01} 
                             />
-                            <line x1={0} y1={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.45} x2={0} y2={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.55} stroke="#64748b" strokeWidth={0.01} />
-                            <line x1={totalNicheDepth * scale} y1={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.45} x2={totalNicheDepth * scale} y2={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.55} stroke="#64748b" strokeWidth={0.01} />
+                            <line x1={0} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.45} x2={0} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.55} stroke="#64748b" strokeWidth={0.01} />
+                            <line x1={totalNicheDepth * scale} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.45} x2={totalNicheDepth * scale} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.55} stroke="#64748b" strokeWidth={0.01} />
                             <text 
                               x={(totalNicheDepth * scale) / 2} 
-                              y={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.65} 
+                              y={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.65} 
                               textAnchor="middle" 
                               fontSize={0.12}
                               fill="#64748b"
@@ -837,7 +837,7 @@ export function Canvas() {
                             x={isNiche ? 0 : 0} // In niche mode, it sits at 0 (the back of the niche). In surface mode, it sits at 0 (the front of the wall, behind equipment)
                             y={state.settings.woodBackingClearance * scale}
                             width={0.03} // Extremely thin layer
-                            height={Math.max(0, scaledHeight - (state.settings.woodBackingClearance * 2 * scale))}
+                            height={Math.max(0, screenHeight - (state.settings.woodBackingClearance * 2 * scale))}
                             fill="#d97706"
                             opacity="0.8"
                           />
@@ -868,7 +868,7 @@ export function Canvas() {
                         <g>
                           <rect 
                             x={depthVariant * scale + equipmentGap * scale - mountDepth * scale} 
-                            y={(scaledHeight / 2) - (mountHeight / 2)} 
+                            y={(screenHeight / 2) - (mountHeight / 2)} 
                             width={mountDepth * scale} 
                             height={mountHeight} 
                             fill="#334155" // Darker neutral slate for mount
@@ -876,16 +876,16 @@ export function Canvas() {
                           {/* Indicator line for Mount */}
                           <line 
                             x1={depthVariant * scale + equipmentGap * scale - mountDepth * scale} 
-                            y1={scaledHeight / 2} 
+                            y1={screenHeight / 2} 
                             x2={-0.4} 
-                            y2={scaledHeight / 2} 
+                            y2={screenHeight / 2} 
                             stroke="#475569" 
                             strokeWidth={0.01} 
                             opacity="0.8"
                           />
                           <text 
                             x={-0.45} 
-                            y={scaledHeight / 2} 
+                            y={screenHeight / 2} 
                             textAnchor="end"
                             alignmentBaseline="middle"
                             fontSize={0.12} 
@@ -901,7 +901,7 @@ export function Canvas() {
                         <g>
                           <rect 
                             x={depthVariant * scale + equipmentGap * scale - playerDepth * scale} 
-                            y={(scaledHeight / 2) + (scaledHeight * 0.05)} // Slight gap below center
+                            y={(screenHeight / 2) + (screenHeight * 0.05)} // Slight gap below center
                             width={playerDepth * scale} 
                             height={playerHeight} 
                             fill="#64748b" // Lighter neutral slate for player
@@ -911,16 +911,16 @@ export function Canvas() {
                           {/* Indicator line for Media Player */}
                           <line 
                             x1={depthVariant * scale + equipmentGap * scale - playerDepth * scale} 
-                            y1={(scaledHeight / 2) + (scaledHeight * 0.05) + (playerHeight / 2)} 
+                            y1={(screenHeight / 2) + (screenHeight * 0.05) + (playerHeight / 2)} 
                             x2={-0.4} 
-                            y2={(scaledHeight / 2) + (scaledHeight * 0.05) + (playerHeight / 2)} 
+                            y2={(screenHeight / 2) + (screenHeight * 0.05) + (playerHeight / 2)} 
                             stroke="#64748b" 
                             strokeWidth={0.01} 
                             opacity="0.8"
                           />
                           <text 
                             x={-0.45} 
-                            y={(scaledHeight / 2) + (scaledHeight * 0.05) + (playerHeight / 2)} 
+                            y={(screenHeight / 2) + (screenHeight * 0.05) + (playerHeight / 2)} 
                             textAnchor="end"
                             alignmentBaseline="middle"
                             fontSize={0.12} 
@@ -936,22 +936,22 @@ export function Canvas() {
                         x={depthVariant * scale + equipmentGap * scale} 
                         y={0} 
                         width={screen.depth * scale} 
-                        height={scaledHeight} 
+                        height={screenHeight} 
                         fill="#1e293b" 
                       />
                       {/* Indicator line for Screen */}
                       <line 
                         x1={depthVariant * scale + equipmentGap * scale} 
-                        y1={scaledHeight * 0.1} 
+                        y1={screenHeight * 0.1} 
                         x2={-0.4} 
-                        y2={scaledHeight * 0.1} 
+                        y2={screenHeight * 0.1} 
                         stroke="#1e293b" 
                         strokeWidth={0.01} 
                         opacity="0.8"
                       />
                       <text 
                         x={-0.45} 
-                        y={scaledHeight * 0.1} 
+                        y={screenHeight * 0.1} 
                         textAnchor="end"
                         alignmentBaseline="middle"
                         fontSize={0.12} 
@@ -964,17 +964,17 @@ export function Canvas() {
                       <g opacity="0.7">
                         <line 
                           x1={depthVariant * scale} 
-                          y1={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.3} 
+                          y1={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.3} 
                           x2={depthVariant * scale + totalEquipmentDepth * scale} 
-                          y2={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.3} 
+                          y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.3} 
                           stroke="black" 
                           strokeWidth={0.01} 
                         />
-                        <line x1={depthVariant * scale} y1={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.25} x2={depthVariant * scale} y2={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.35} stroke="black" strokeWidth={0.01} />
-                        <line x1={depthVariant * scale + totalEquipmentDepth * scale} y1={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.25} x2={depthVariant * scale + totalEquipmentDepth * scale} y2={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.35} stroke="black" strokeWidth={0.01} />
+                        <line x1={depthVariant * scale} y1={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.25} x2={depthVariant * scale} y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.35} stroke="black" strokeWidth={0.01} />
+                        <line x1={depthVariant * scale + totalEquipmentDepth * scale} y1={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.25} x2={depthVariant * scale + totalEquipmentDepth * scale} y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.35} stroke="black" strokeWidth={0.01} />
                         <text 
                           x={depthVariant * scale + (totalEquipmentDepth * scale) / 2} 
-                          y={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.45} 
+                          y={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.45} 
                           textAnchor="middle" 
                           fontSize={0.12}
                           fill="#334155"
@@ -989,17 +989,17 @@ export function Canvas() {
                         <g opacity="0.7">
                           <line 
                             x1={0} 
-                            y1={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} 
-                            x2={depthVariant * scale} 
-                            y2={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} 
-                            stroke="#eab308" 
-                            strokeWidth={0.01} 
-                          />
-                          <line x1={0} y1={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1} x2={0} y2={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} stroke="#eab308" strokeWidth={0.01} />
-                          <line x1={depthVariant * scale} y1={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1} x2={depthVariant * scale} y2={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} stroke="#eab308" strokeWidth={0.01} />
+                            y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} 
+                              x2={depthVariant * scale} 
+                              y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} 
+                              stroke="#eab308" 
+                              strokeWidth={0.01} 
+                            />
+                          <line x1={0} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1} x2={0} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} stroke="#eab308" strokeWidth={0.01} />
+                          <line x1={depthVariant * scale} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1} x2={depthVariant * scale} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} stroke="#eab308" strokeWidth={0.01} />
                           <text 
                             x={(depthVariant * scale) / 2} 
-                            y={scaledHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1} 
+                            y={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1}
                             textAnchor="middle" 
                             fontSize={0.1}
                             fill="#eab308"
@@ -1012,7 +1012,7 @@ export function Canvas() {
                       {/* Title at the bottom */}
                       <text 
                         x={(isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0)} 
-                        y={scaledHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.8} 
+                        y={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.8} 
                         textAnchor="middle" 
                         fontSize={0.15} 
                         fill="#0f172a" 

@@ -134,6 +134,7 @@ function DrawingBuilderContent({
             placeholder="Untitled Drawing"
             disabled={readOnly}
           />
+
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => window.print()}>
@@ -147,6 +148,7 @@ function DrawingBuilderContent({
           {!readOnly && (
             <Button size="sm" 
             onClick={handleSave}
+            // onClick={console.log('the save button is clicked, the WALL GRID is not recognized ⚠️⚠️⚠️🔴🔴')}
             >
               <Save className="mr-2 size-4" />
               Save
