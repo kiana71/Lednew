@@ -102,13 +102,13 @@ function DrawingBuilderContent({
       // Small delay to ensure the DOM layout is fully updated before capture
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      await exportToPDF(title, canvasElement);
+      const saved = await exportToPDF(title, canvasElement);
       
       // Restore transforms and guides
       canvasElement.style.transform = originalTransform;
       guides.forEach(g => (g as HTMLElement).style.display = '');
 
-      toast.success('PDF exported successfully');
+      if (saved) toast.success('PDF exported successfully');
     } catch (error) {
       console.error(error);
       toast.error('Failed to export PDF');

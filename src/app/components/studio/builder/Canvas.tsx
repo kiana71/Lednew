@@ -1012,7 +1012,7 @@ export function Canvas() {
                       {/* Title at the bottom */}
                       <text 
                         x={(isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0)} 
-                        y={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.8} 
+                        y={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.40} 
                         textAnchor="middle" 
                         fontSize={0.15} 
                         fill="#0f172a" 
@@ -1063,7 +1063,7 @@ export function Canvas() {
             <div className="flex-1 h-36 pointer-events-auto border border-slate-300 rounded p-2 bg-white/95 overflow-hidden flex flex-col relative">
               <div className="flex items-center justify-between mb-1 shrink-0">
                 <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Installation Notes</h3>
-                {state.notes.length > 0 && (
+                {/* {state.notes.length > 0 && (
                   <Select 
                     value={state.selectedNoteId || 'none'} 
                     onValueChange={(val) => selectNote(val === 'none' ? null : val)}
@@ -1079,7 +1079,7 @@ export function Canvas() {
                       ))}
                     </SelectContent>
                   </Select>
-                )}
+                )} */}
               </div>
               <div
                 className="flex-1 overflow-hidden text-[10px] prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4"

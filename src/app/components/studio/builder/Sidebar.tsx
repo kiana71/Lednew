@@ -252,6 +252,7 @@ export function Sidebar() {
         
         {/* Inventory Selector */}
         <div className="space-y-1">
+          <Label className="text-xs">Screen</Label>
           <Select onValueChange={handleScreenSelect} value={screens.find(s => s.model === state.screen.model)?.id || 'none'}>
             <SelectTrigger>
               <SelectValue placeholder="Select a screen..." />
@@ -294,6 +295,7 @@ export function Sidebar() {
       <div className="space-y-4">
         {/* Inventory Selector */}
         <div className="space-y-1">
+          <Label className="text-xs">Mount</Label>
           <Select onValueChange={handleMountSelect} value={mounts.find(m => m.model === state.mount.model)?.id || 'none'}>
             <SelectTrigger>
               <SelectValue placeholder="Select a mount..." />
@@ -339,6 +341,7 @@ export function Sidebar() {
       <div className="space-y-4">
         {/* Inventory Selector */}
         <div className="space-y-1">
+          <Label className="text-xs">Media Player</Label>
           <Select onValueChange={handleMediaPlayerSelect} value={mediaPlayers.find(p => p.model === state.mediaPlayer.model)?.id || 'none'}>
             <SelectTrigger>
               <SelectValue placeholder="Select a media player..." />
@@ -708,6 +711,7 @@ export function Sidebar() {
             onClick={() => {
               const newId = addNote();
               setSidebarSelectedNoteId(newId);
+              selectNote(newId);
             }}
             className="h-7 text-xs"
             disabled={readOnly}
@@ -722,7 +726,7 @@ export function Sidebar() {
             <div 
               key={note.id} 
               className={`flex items-center justify-between p-2 rounded border text-sm cursor-pointer ${sidebarSelectedNoteId === note.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
-              onClick={() => setSidebarSelectedNoteId(note.id)}
+              onClick={() => { setSidebarSelectedNoteId(note.id); selectNote(note.id); }}
             >
               <span>{note.name || `Note ${index + 1}`}</span>
               <div className="flex items-center gap-1">
@@ -734,6 +738,7 @@ export function Sidebar() {
                     e.stopPropagation();
                     const newId = addNote(note);
                     setSidebarSelectedNoteId(newId);
+                    selectNote(newId);
                   }}
                   title="Duplicate note"
                   disabled={readOnly}
@@ -747,7 +752,10 @@ export function Sidebar() {
                   onClick={(e) => {
                     e.stopPropagation();
                     removeNote(note.id);
-                    if (sidebarSelectedNoteId === note.id) setSidebarSelectedNoteId(null);
+                    if (sidebarSelectedNoteId === note.id) {
+                      setSidebarSelectedNoteId(null);
+                      selectNote(null);
+                    }
                   }}
                   disabled={readOnly}
                 >
@@ -771,9 +779,11 @@ export function Sidebar() {
               <Label className="text-xs">Content</Label>
               {/* We need pb-12 so the resize handle isn't blocked by the bottom padding/margin of the sidebar */}
               <div className="min-h-[200px] max-h-[600px] border rounded-md bg-white resize-y overflow-auto flex flex-col mb-8">
-                <RichTextEditor 
+                <RichTextEditor
+                  key={sidebarSelectedNoteId}
                   content={currentSidebarNote.content} 
-                  onChange={(content) => updateNote(sidebarSelectedNoteId, { content })} 
+                  onChange={(content) => updateNote(sidebarSelectedNoteId, { content })}
+                  editable={!readOnly}
                 />
               </div>
             </div>
