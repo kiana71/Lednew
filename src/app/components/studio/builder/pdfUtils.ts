@@ -240,7 +240,7 @@ function drawFooter(ctx: CanvasRenderingContext2D, canvasEl: HTMLElement, s: num
     const lineY = hdrY + FONT + 4;
 
     // Title row: "BILL OF MATERIALS" (left) | "DIMENSIONS (IN)" (right)
-    txt('BILL OF MATERIALS', r.x + P, hdrY, FONT, SLATE500, true);
+    txt('DETAILS', r.x + P, hdrY, FONT, SLATE500, true);
     txt('DIMENSIONS (IN)', r.x + r.w - P, hdrY, FONT, SLATE500, true, 'right');
     hline(r.x + 1, lineY, r.x + r.w - 1);
 

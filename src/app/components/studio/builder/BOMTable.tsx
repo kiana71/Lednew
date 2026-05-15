@@ -21,7 +21,7 @@ export function BOMTable() {
           <tr className="border-b border-slate-200">
             <th colSpan={4} className="py-1 px-2">
               <div className="flex items-center justify-between text-[9px] text-slate-500">
-                <span><span className="font-semibold text-slate-700">Mounting:</span> {state.mode === 'WALL' ? 'Wall' : state.mode === 'NICHE' ? 'Niche' : 'Table'}</span>
+                <span><span className="font-semibold text-slate-700">Installation:</span> {state.mode === 'WALL' ? 'Wall' : state.mode === 'NICHE' ? 'Niche' : 'Table'}</span>
                 <span><span className="font-semibold text-slate-700">Orientation:</span> {state.orientation === 'HORIZONTAL' ? 'Horizontal' : 'Vertical'}</span>
               </div>
             </th>
@@ -31,7 +31,7 @@ export function BOMTable() {
           {/* Screens */}
           <tr className="border-b border-slate-200 bg-slate-50/50">
             <td className="py-2 px-2 font-bold text-[10px] text-slate-900">Screen</td>
-            <td className="py-2 px-2 truncate max-w-[120px] text-[10px] text-slate-900">{screen.model ? `${screen.manufacturer || ''} ${screen.model}` : 'LED Display Panel'}</td>
+            <td className="py-2 px-2 truncate max-w-[120px] text-[10px] text-slate-900">{screen.alias || screen.model || 'LED Display Panel'}</td>
             <td className="py-2 px-2 text-center font-bold text-[10px] text-slate-900">{totalScreens}</td>
             <td className="py-2 px-2 text-right whitespace-nowrap font-bold text-[10px] text-slate-900">
               <span className="text-slate-500 font-normal mr-1">W:</span>{screen.width} 
@@ -40,12 +40,12 @@ export function BOMTable() {
             </td>
           </tr>
 
-          {/* Niche (if applicable) - Moved under Screen */}
+          {/* Niche (if applicable) */}
           {(state.mode === 'NICHE' || state.mode === 'TABLE_NICHE') && (
             <tr className="bg-blue-50/30 border-b border-slate-200">
               <td className="py-2 px-2 font-bold text-[10px] text-blue-900">Niche</td>
-              <td className="py-2 px-2 truncate max-w-[120px] text-[10px] text-blue-900">Wall Cutout Requirement</td>
-              <td className="py-2 px-2 text-center font-bold text-[10px] text-blue-900">1</td>
+              <td className="py-2 px-2 truncate max-w-[120px] text-[10px] text-blue-900"></td>
+              <td className="py-2 px-2 text-center font-bold text-[10px] text-blue-900"></td>
               <td className="py-2 px-2 text-right whitespace-nowrap font-bold text-[10px] text-blue-900">
                 <span className="text-blue-500/70 font-normal mr-1">W:</span>{nicheDimensions.width.toFixed(2)} 
                 <span className="text-blue-500/70 font-normal mx-1">H:</span>{nicheDimensions.height.toFixed(2)} 

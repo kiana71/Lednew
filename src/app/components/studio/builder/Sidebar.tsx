@@ -50,9 +50,6 @@ export function Sidebar() {
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   const [sidebarSelectedNoteId, setSidebarSelectedNoteId] = useState<string | null>(null);
 
-  // Local state for AFF input to allow typing while enforcing constraints
-  const [localFloorDistance, setLocalFloorDistance] = useState(state.settings.floorDistance.toString());
-
   // Calculate dynamic minimum floor distance:
   // 1. Hard minimum of 20 inches for the AFF input itself
   // 2. Must be at least half the screen height (+ 1 inch clearance) so the screen never touches or overlaps the floor
@@ -65,11 +62,6 @@ export function Sidebar() {
       updateSettings({ floorDistance: minFloorDistance });
     }
   }, [minFloorDistance, state.settings.floorDistance, updateSettings]);
-
-  // Sync local AFF state when global state changes
-  useEffect(() => {
-    setLocalFloorDistance(state.settings.floorDistance.toString());
-  }, [state.settings.floorDistance]);
 
   // Select first box on mount
   useEffect(() => {
@@ -113,6 +105,7 @@ export function Sidebar() {
         depth: 0,
         model: undefined,
         manufacturer: undefined,
+        alias: undefined,
       });
       return;
     }
@@ -125,6 +118,7 @@ export function Sidebar() {
         depth: selected.dimensions.depth,
         model: selected.model,
         manufacturer: selected.manufacturer,
+        alias: selected.alias,
       });
     }
   };
@@ -450,35 +444,43 @@ export function Sidebar() {
         <div className="space-y-1">
           <Label className="text-xs">AFF to Center (in)</Label>
           <div className="flex items-center gap-2">
-            <Input 
-              type="number" 
-              min={minFloorDistance} // Dynamic minimum to ensure 20" clearance
-              max={240} // Maximum realistic height (20 ft)
-              value={localFloorDistance} 
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 text-base"
+              disabled={readOnly || state.settings.floorDistance <= minFloorDistance}
+              onClick={() => {
+                const next = Math.max(minFloorDistance, state.settings.floorDistance - 1);
+                updateSettings({ floorDistance: next });
+              }}
+            >−</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 text-base"
+              disabled={readOnly || state.settings.floorDistance >= 400}
+              onClick={() => {
+                const next = Math.min(400, state.settings.floorDistance + 1);
+                updateSettings({ floorDistance: next });
+              }}
+            >+</Button>
+            <Input
+              type="number"
+              min={1}
+              max={400}
+              value={state.settings.affLabel ?? state.settings.floorDistance}
               onChange={(e) => {
-                setLocalFloorDistance(e.target.value);
                 const val = Number(e.target.value);
-                // Update global state if it's within valid range, otherwise let local state hold it while typing
-                if (val >= minFloorDistance && val <= 400) {
-                  updateSettings({ floorDistance: val });
+                if (!isNaN(val) && val >= 1 && val <= 400) {
+                  updateSettings({ affLabel: val });
                 }
               }}
-              onBlur={() => {
-                // Snap to min/max on blur if left in an invalid state
-                const val = Number(localFloorDistance);
-                if (val < minFloorDistance) {
-                  updateSettings({ floorDistance: minFloorDistance });
-                  setLocalFloorDistance(minFloorDistance.toString());
-                } else if (val > 400) {
-                  updateSettings({ floorDistance: 400 });
-                  setLocalFloorDistance("400");
-                }
-              }}
-              className="w-full"
+              className="w-20 h-8 text-xs"
               disabled={readOnly}
+              placeholder="AFF"
             />
           </div>
-          <p className="text-[10px] text-slate-500">Distance from floor to center of screen</p>
+          <p className="text-[10px] text-slate-500">−/+ adjusts drawing layout · number sets displayed AFF value</p>
         </div>
       </div>
 

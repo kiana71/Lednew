@@ -361,7 +361,7 @@ export function Canvas() {
                       {/* Arrow heads/ticks */}
                       <line x1="-0.05" y1={topY} x2="0.05" y2={topY} stroke="#64748b" strokeWidth={0.01} />
                       <line x1="-0.05" y1={botY} x2="0.05" y2={botY} stroke="#64748b" strokeWidth={0.01} />
-                      {/* Distance Text */}
+                      {/* AFF label — uses affLabel value, independent of layout */}
                       <text
                         x="-0.15"
                         y={midY}
@@ -370,7 +370,7 @@ export function Canvas() {
                         fill="#64748b"
                         transform={`rotate(-90, -0.15, ${midY})`}
                       >
-                        {state.settings.floorDistance}" AFF to Center
+                        {(state.settings.affLabel ?? state.settings.floorDistance)}" AFF to Center
                       </text>
                     </g>
                   );
@@ -765,20 +765,11 @@ export function Canvas() {
                         x1={isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0} 
                         y1={-0.5} 
                         x2={isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0} 
-                        y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.2} 
+                        y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.8} 
                         stroke="#94a3b8" 
                         strokeWidth={0.02} 
                         opacity={0.5} // Made wall line more transparent
                       />
-                      <text 
-                        x={(isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0)} 
-                        y={-0.6} // Moved wall text above the tip of the line
-                        textAnchor="middle" 
-                        fontSize={0.12} 
-                        fill="#94a3b8"
-                      >
-                        {mode === 'TABLE_NICHE' ? 'Table Surface' : 'Wall'}
-                      </text>
 
                       {/* Optional Niche Side View Background */}
                       {isNiche && (
@@ -808,17 +799,17 @@ export function Canvas() {
                           <g opacity="0.7">
                             <line 
                               x1={0} 
-                              y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.5} 
+                              y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} 
                               x2={totalNicheDepth * scale} 
-                              y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.5} 
+                              y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} 
                               stroke="#64748b" 
                               strokeWidth={0.01} 
                             />
-                            <line x1={0} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.45} x2={0} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.55} stroke="#64748b" strokeWidth={0.01} />
-                            <line x1={totalNicheDepth * scale} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.45} x2={totalNicheDepth * scale} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.55} stroke="#64748b" strokeWidth={0.01} />
+                            <line x1={0} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} x2={0} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.25} stroke="#64748b" strokeWidth={0.01} />
+                            <line x1={totalNicheDepth * scale} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} x2={totalNicheDepth * scale} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.25} stroke="#64748b" strokeWidth={0.01} />
                             <text 
                               x={(totalNicheDepth * scale) / 2} 
-                              y={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.65} 
+                              y={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.35} 
                               textAnchor="middle" 
                               fontSize={0.12}
                               fill="#64748b"
@@ -960,59 +951,11 @@ export function Canvas() {
                         Screen
                       </text>
 
-                      {/* Total Depth Dimension Marker */}
-                      <g opacity="0.7">
-                        <line 
-                          x1={depthVariant * scale} 
-                          y1={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.3} 
-                          x2={depthVariant * scale + totalEquipmentDepth * scale} 
-                          y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.3} 
-                          stroke="black" 
-                          strokeWidth={0.01} 
-                        />
-                        <line x1={depthVariant * scale} y1={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.25} x2={depthVariant * scale} y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.35} stroke="black" strokeWidth={0.01} />
-                        <line x1={depthVariant * scale + totalEquipmentDepth * scale} y1={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.25} x2={depthVariant * scale + totalEquipmentDepth * scale} y2={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.35} stroke="black" strokeWidth={0.01} />
-                        <text 
-                          x={depthVariant * scale + (totalEquipmentDepth * scale) / 2} 
-                          y={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 0.45} 
-                          textAnchor="middle" 
-                          fontSize={0.12}
-                          fill="#334155"
-                          fontWeight="bold"
-                        >
-                          {roundToNearestQuarter(totalEquipmentDepth).toFixed(2)}" Total Depth
-                        </text>
-                      </g>
-
-                      {/* Depth Variant (Gap) Marker if applicable */}
-                      {isNiche && depthVariant > 0 && (
-                        <g opacity="0.7">
-                          <line 
-                            x1={0} 
-                            y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} 
-                              x2={depthVariant * scale} 
-                              y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.15} 
-                              stroke="#eab308" 
-                              strokeWidth={0.01} 
-                            />
-                          <line x1={0} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1} x2={0} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} stroke="#eab308" strokeWidth={0.01} />
-                          <line x1={depthVariant * scale} y1={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1} x2={depthVariant * scale} y2={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.2} stroke="#eab308" strokeWidth={0.01} />
-                          <text 
-                            x={(depthVariant * scale) / 2} 
-                            y={screenHeight + (nicheSettings.clearanceTopBottom * scale) + 0.1}
-                            textAnchor="middle" 
-                            fontSize={0.1}
-                            fill="#eab308"
-                          >
-                            {depthVariant.toFixed(1)}" Gap
-                          </text>
-                        </g>
-                      )}
 
                       {/* Title at the bottom */}
                       <text 
                         x={(isNiche ? (depthVariant * scale + equipmentGap * scale + screen.depth * scale) : 0)} 
-                        y={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.40} 
+                        y={screenHeight + (isNiche ? nicheSettings.clearanceTopBottom * scale : 0) + 1.10} 
                         textAnchor="middle" 
                         fontSize={0.15} 
                         fill="#0f172a" 
@@ -1093,7 +1036,7 @@ export function Canvas() {
             {/* Right: BOM */}
             <div className="w-[55%] pointer-events-auto border border-slate-300 rounded px-2 pt-2 pb-0 bg-white/95 flex flex-col">
               <div className="flex items-center justify-between mb-1 shrink-0">
-                <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bill of Materials</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Details</h3>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Dimensions (in)</span>
               </div>
               <div>

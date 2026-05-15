@@ -49,7 +49,8 @@ export interface ReceptacleBoxConfig {
 }
 
 export interface DrawingSettings {
-  floorDistance: number; // Floor to Center Line
+  floorDistance: number; // Floor to Center Line (controls drawing layout)
+  affLabel: number;      // AFF to Center value shown as text on the drawing
   woodBacking: boolean; // Enable/Disable Wood Backing
   woodBackingClearance: number; // Distance from edges in inches
   drawingNumber: string;

@@ -55,6 +55,7 @@ const defaultState: AppState = {
   ],
   settings: {
     floorDistance: 60, // 5ft default
+    affLabel: 60,      // displayed AFF number (independent of layout)
     woodBacking: false,
     woodBackingClearance: 3,
     drawingNumber: 'New Drawing',
