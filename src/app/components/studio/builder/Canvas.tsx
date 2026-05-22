@@ -262,7 +262,7 @@ export function Canvas() {
                 className="fill-slate-800"
                 style={{ fontSize: '0.22px', fontWeight: 600 }}
               >
-                Welcome to LED Technical Map
+                Welcome to Drawing Builder
               </text>
               <text
                 x={LETTER_WIDTH / 2}

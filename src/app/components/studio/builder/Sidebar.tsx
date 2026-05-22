@@ -12,6 +12,7 @@ import { Switch } from '../../ui/switch';
 import { inventoryService } from '../../../services/InventoryService';
 import { Screen, Mount, MediaPlayer, ReceptacleBox } from '../../../types';
 import { RichTextEditor } from './RichTextEditor';
+import { SearchableSelect } from './SearchableSelect';
 
 export function Sidebar() {
   const { 
@@ -106,6 +107,7 @@ export function Sidebar() {
         model: undefined,
         manufacturer: undefined,
         alias: undefined,
+        inventoryId: undefined,
       });
       return;
     }
@@ -119,6 +121,7 @@ export function Sidebar() {
         model: selected.model,
         manufacturer: selected.manufacturer,
         alias: selected.alias,
+        inventoryId: selected.id,
       });
     }
   };
@@ -247,19 +250,24 @@ export function Sidebar() {
         {/* Inventory Selector */}
         <div className="space-y-1">
           <Label className="text-xs">Screen</Label>
-          <Select onValueChange={handleScreenSelect} value={screens.find(s => s.model === state.screen.model)?.id || 'none'}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a screen..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No Screen Selected</SelectItem>
-              {screens.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.manufacturer} {s.model} ({s.sizeInInch || 'N/A'}")
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={
+                    state.screen.inventoryId ||
+                    screens.find(s => s.model === state.screen.model && s.manufacturer === state.screen.manufacturer)?.id ||
+                    'none'
+                  }
+            onValueChange={handleScreenSelect}
+            placeholder="Select a screen..."
+            searchPlaceholder="Search screens..."
+            disabled={readOnly}
+            options={[
+              { value: 'none', label: 'No Screen Selected' },
+              ...screens.map(s => ({
+                value: s.id,
+                label: `${s.manufacturer} ${s.model} (${s.sizeInInch || 'N/A'}")`,
+              })),
+            ]}
+          />
         </div>
 
         {state.screen.width > 0 && (
@@ -290,19 +298,20 @@ export function Sidebar() {
         {/* Inventory Selector */}
         <div className="space-y-1">
           <Label className="text-xs">Mount</Label>
-          <Select onValueChange={handleMountSelect} value={mounts.find(m => m.model === state.mount.model)?.id || 'none'}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a mount..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No Mount Selected</SelectItem>
-              {mounts.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.model}{m.alias ? ` — ${m.alias}` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={mounts.find(m => m.model === state.mount.model)?.id || 'none'}
+            onValueChange={handleMountSelect}
+            placeholder="Select a mount..."
+            searchPlaceholder="Search mounts..."
+            disabled={readOnly}
+            options={[
+              { value: 'none', label: 'No Mount Selected' },
+              ...mounts.map(m => ({
+                value: m.id,
+                label: m.model + (m.alias ? ` — ${m.alias}` : ''),
+              })),
+            ]}
+          />
         </div>
 
         <div className="space-y-3 pt-2">
@@ -336,19 +345,20 @@ export function Sidebar() {
         {/* Inventory Selector */}
         <div className="space-y-1">
           <Label className="text-xs">Media Player</Label>
-          <Select onValueChange={handleMediaPlayerSelect} value={mediaPlayers.find(p => p.model === state.mediaPlayer.model)?.id || 'none'}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a media player..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No Media Player Selected</SelectItem>
-              {mediaPlayers.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.model}{m.alias ? ` — ${m.alias}` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={mediaPlayers.find(p => p.model === state.mediaPlayer.model)?.id || 'none'}
+            onValueChange={handleMediaPlayerSelect}
+            placeholder="Select a media player..."
+            searchPlaceholder="Search media players..."
+            disabled={readOnly}
+            options={[
+              { value: 'none', label: 'No Media Player Selected' },
+              ...mediaPlayers.map(m => ({
+                value: m.id,
+                label: m.model + (m.alias ? ` — ${m.alias}` : ''),
+              })),
+            ]}
+          />
         </div>
 
         <div className="space-y-3 pt-2">
@@ -496,11 +506,11 @@ export function Sidebar() {
             disabled={readOnly}
           />
         </div>
-        
+      
         {state.settings.woodBacking && (
           <div className="space-y-1 pt-2">
             <Label className="text-xs">Edge Clearance (in)</Label>
-            <Input 
+            <Input
               type="number" 
               min={0}
               max={Math.min(orientedScreen.width * state.grid.cols, orientedScreen.height * state.grid.rows) / 2}
@@ -624,24 +634,21 @@ export function Sidebar() {
         {selectedBoxId && currentBox && (
           <div className="space-y-4 pt-2 border-t">
             <div className="space-y-1">
-              {/* Add key based on selectedBoxId to force re-mount and clear state, OR bind value */}
-              <Select 
+              <SearchableSelect
                 key={selectedBoxId}
-                value={currentBox.inventoryId} 
+                value={currentBox.inventoryId ?? 'custom'}
                 onValueChange={handleReceptacleBoxSelect}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a box..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="custom">Custom Box</SelectItem>
-                  {receptacleBoxes.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>
-                      {b.model}{b.alias ? ` — ${b.alias}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select a box..."
+                searchPlaceholder="Search boxes..."
+                disabled={readOnly}
+                options={[
+                  { value: 'custom', label: 'Custom Box' },
+                  ...receptacleBoxes.map(b => ({
+                    value: b.id,
+                    label: b.model + (b.alias ? ` — ${b.alias}` : ''),
+                  })),
+                ]}
+              />
             </div>
 
             {currentBox.inventoryId === 'custom' && (

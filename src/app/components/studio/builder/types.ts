@@ -8,6 +8,7 @@ export interface ScreenConfig {
   model?: string;
   manufacturer?: string;
   alias?: string;
+  inventoryId?: string;
 }
 
 export interface MountConfig {
