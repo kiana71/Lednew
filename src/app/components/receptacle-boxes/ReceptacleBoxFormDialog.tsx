@@ -33,6 +33,7 @@ export function ReceptacleBoxFormDialog({ open, onOpenChange, receptacleBox, onS
     width: '', height: '', depth: '', unit: 'in' as 'in' | 'cm' | 'mm',
   });
   const [attachment, setAttachment] = useState<UploadedFile | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (receptacleBox) {
@@ -41,20 +42,26 @@ export function ReceptacleBoxFormDialog({ open, onOpenChange, receptacleBox, onS
         width: receptacleBox.dimensions.width.toString(), height: receptacleBox.dimensions.height.toString(),
         depth: receptacleBox.dimensions.depth.toString(), unit: receptacleBox.dimensions.unit,
       });
+      setExistingPhotoUrl(receptacleBox.photoUrl || null);
     } else {
       setFormData({ alias: '', model: '', manufacturer: '', width: '', height: '', depth: '', unit: 'in' });
+      setExistingPhotoUrl(null);
     }
     setAttachment(null);
   }, [receptacleBox, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const photoUrl = attachment?.downloadUrl ?? existingPhotoUrl ?? undefined;
     onSubmit({
       type: 'receptacleBox', alias: formData.alias, model: formData.model,
       manufacturer: formData.manufacturer || undefined,
       dimensions: { width: Number(formData.width), height: Number(formData.height), depth: Number(formData.depth), unit: formData.unit },
+      photoUrl,
     });
   };
+
+  const isUploading = attachment !== null && !attachment.downloadUrl;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -84,14 +91,19 @@ export function ReceptacleBoxFormDialog({ open, onOpenChange, receptacleBox, onS
                 <MediaUploader
                   value={attachment}
                   onChange={setAttachment}
-                  label="Upload a product photo or spec sheet"
+                  label="Upload a product photo or spec video"
+                  uploadPath="inventory/receptacle-boxes"
+                  existingUrl={existingPhotoUrl}
+                  onExistingRemove={() => setExistingPhotoUrl(null)}
                 />
               </div>
             </div>
           </div>
           <SheetFooter className="px-6 py-4 border-t flex-shrink-0 flex-row justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">{receptacleBox ? 'Update' : 'Add'} Receptacle Box</Button>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? 'Uploading…' : `${receptacleBox ? 'Update' : 'Add'} Receptacle Box`}
+            </Button>
           </SheetFooter>
         </form>
       </SheetContent>

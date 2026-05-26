@@ -33,6 +33,7 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
     width: '', height: '', depth: '', unit: 'in' as 'in' | 'cm' | 'mm',
   });
   const [attachment, setAttachment] = useState<UploadedFile | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (mount) {
@@ -42,22 +43,28 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
         width: mount.dimensions.width.toString(), height: mount.dimensions.height.toString(),
         depth: mount.dimensions.depth.toString(), unit: mount.dimensions.unit,
       });
+      setExistingPhotoUrl(mount.photoUrl || null);
     } else {
       setFormData({ alias: '', model: '', manufacturer: '', maxLoadLbs: '', clearance: '', width: '', height: '', depth: '', unit: 'in' });
+      setExistingPhotoUrl(null);
     }
     setAttachment(null);
   }, [mount, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const photoUrl = attachment?.downloadUrl ?? existingPhotoUrl ?? undefined;
     onSubmit({
       type: 'mount', alias: formData.alias, model: formData.model,
       manufacturer: formData.manufacturer || undefined,
       maxLoadLbs: formData.maxLoadLbs ? Number(formData.maxLoadLbs) : undefined,
       clearance: formData.clearance || undefined,
       dimensions: { width: Number(formData.width), height: Number(formData.height), depth: Number(formData.depth), unit: formData.unit },
+      photoUrl,
     });
   };
+
+  const isUploading = attachment !== null && !attachment.downloadUrl;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -89,14 +96,19 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
                 <MediaUploader
                   value={attachment}
                   onChange={setAttachment}
-                  label="Upload a product photo or spec sheet"
+                  label="Upload a product photo or spec video"
+                  uploadPath="inventory/mounts"
+                  existingUrl={existingPhotoUrl}
+                  onExistingRemove={() => setExistingPhotoUrl(null)}
                 />
               </div>
             </div>
           </div>
           <SheetFooter className="px-6 py-4 border-t flex-shrink-0 flex-row justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">{mount ? 'Update' : 'Add'} Mount</Button>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? 'Uploading…' : `${mount ? 'Update' : 'Add'} Mount`}
+            </Button>
           </SheetFooter>
         </form>
       </SheetContent>

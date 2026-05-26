@@ -451,29 +451,36 @@ export function Sidebar() {
       {/* 3.5 Environment Settings */}
       <div className="space-y-4">
         <h3 className="font-semibold text-sm text-slate-900">Environment Settings</h3>
-        <div className="space-y-1">
-          <Label className="text-xs">AFF to Center (in)</Label>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 text-base"
-              disabled={readOnly || state.settings.floorDistance <= minFloorDistance}
-              onClick={() => {
-                const next = Math.max(minFloorDistance, state.settings.floorDistance - 1);
-                updateSettings({ floorDistance: next });
-              }}
-            >−</Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0 text-base"
-              disabled={readOnly || state.settings.floorDistance >= 400}
-              onClick={() => {
-                const next = Math.min(400, state.settings.floorDistance + 1);
-                updateSettings({ floorDistance: next });
-              }}
-            >+</Button>
+        <div className="flex gap-3">
+          {/* Drawing Zoom */}
+          <div className="flex-1 space-y-1">
+            <Label className="text-xs">Drawing Zoom</Label>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 flex-1 p-0 text-base"
+                disabled={readOnly || state.settings.floorDistance <= minFloorDistance}
+                onClick={() => {
+                  const next = Math.max(minFloorDistance, state.settings.floorDistance - 1);
+                  updateSettings({ floorDistance: next });
+                }}
+              >−</Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 flex-1 p-0 text-base"
+                disabled={readOnly || state.settings.floorDistance >= 400}
+                onClick={() => {
+                  const next = Math.min(400, state.settings.floorDistance + 1);
+                  updateSettings({ floorDistance: next });
+                }}
+              >+</Button>
+            </div>
+          </div>
+          {/* AFF to Center */}
+          <div className="flex-1 space-y-1">
+            <Label className="text-xs">AFF to Center (in)</Label>
             <Input
               type="number"
               min={1}
@@ -485,12 +492,11 @@ export function Sidebar() {
                   updateSettings({ affLabel: val });
                 }
               }}
-              className="w-20 h-8 text-xs"
+              className="h-8 text-xs w-full"
               disabled={readOnly}
               placeholder="AFF"
             />
           </div>
-          <p className="text-[10px] text-slate-500">−/+ adjusts drawing layout · number sets displayed AFF value</p>
         </div>
       </div>
 

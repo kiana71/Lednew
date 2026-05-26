@@ -1,19 +1,19 @@
 /**
  * Media Uploader Component
  *
- * Reusable drag-and-drop file uploader for images and videos.
+ * Drag-and-drop file uploader that uploads directly to Firebase Storage.
  *
  * Accepted formats:
- *   Images  – jpg, jpeg, png, gif, webp, svg  (max 10 MB)
+ *   Images  – jpg, jpeg, png, gif, webp, svg  (max 2 MB)
  *   Videos  – mp4, mov, avi, webm, mkv        (max 20 MB)
  *
- * Features:
- *   - Drag & drop or click-to-browse
- *   - Type / size validation with inline error messages
- *   - Simulated upload progress bar
- *   - Rich preview card with clickable lightbox
- *   - Video playback in lightbox
- *   - Remove & re-add flow
+ * Props:
+ *   value          – currently uploaded file (new selection)
+ *   onChange       – called with UploadedFile (incl. downloadUrl) or null
+ *   label          – optional label above the drop zone
+ *   uploadPath     – Firebase Storage path prefix, e.g. "inventory/screens"
+ *   existingUrl    – URL of an already-saved file (edit mode)
+ *   onExistingRemove – called when the user removes the existing file
  */
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
@@ -37,6 +37,7 @@ import {
   Download,
   Trash2,
 } from 'lucide-react';
+import { uploadToFirebase } from '../../lib/uploadToFirebase';
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'webm', 'mkv'];
 const IMAGE_MIME_PREFIXES = ['image/'];
 const VIDEO_MIME_PREFIXES = ['video/'];
 
-const IMAGE_MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+const IMAGE_MAX_BYTES = 2 * 1024 * 1024;  // 2 MB
 const VIDEO_MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 
 const ACCEPT_STRING = [
@@ -60,6 +61,8 @@ export interface UploadedFile {
   file: File;
   previewUrl: string | null;
   type: 'image' | 'video';
+  /** Set once the Firebase upload completes successfully */
+  downloadUrl?: string;
 }
 
 type UploaderState = 'idle' | 'uploading' | 'complete' | 'error';
@@ -70,6 +73,17 @@ interface MediaUploaderProps {
   onChange: (file: UploadedFile | null) => void;
   /** Optional label shown above the drop zone. */
   label?: string;
+  /**
+   * Firebase Storage path prefix, e.g. "inventory/screens".
+   * When provided, uploads happen for real; otherwise simulates progress.
+   */
+  uploadPath?: string;
+  /**
+   * URL of an already-saved file shown in edit mode.
+   * If the user removes it, onExistingRemove is called.
+   */
+  existingUrl?: string | null;
+  onExistingRemove?: () => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -89,6 +103,12 @@ function classifyFile(file: File): 'image' | 'video' | null {
   return null;
 }
 
+function classifyUrl(url: string): 'image' | 'video' {
+  const lower = url.toLowerCase().split('?')[0];
+  if (VIDEO_EXTENSIONS.some((e) => lower.endsWith(`.${e}`))) return 'video';
+  return 'image';
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -97,13 +117,21 @@ function formatBytes(bytes: number): string {
 
 // ── Component ────────────────────────────────────────────────────────
 
-export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
+export function MediaUploader({
+  value,
+  onChange,
+  label,
+  uploadPath,
+  existingUrl,
+  onExistingRemove,
+}: MediaUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploaderState>(value ? 'complete' : 'idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [existingLightboxOpen, setExistingLightboxOpen] = useState(false);
 
   // Keep state in sync if the parent clears `value` externally
   useEffect(() => {
@@ -119,10 +147,10 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
     const kind = classifyFile(file);
     if (!kind) {
       const ext = getExtension(file.name);
-      return `".${ext}" is not a supported format. Please upload an image (${IMAGE_EXTENSIONS.join(', ')}) or video (${VIDEO_EXTENSIONS.join(', ')}).`;
+      return `".${ext}" is not supported. Please upload an image (${IMAGE_EXTENSIONS.join(', ')}) or video (${VIDEO_EXTENSIONS.join(', ')}).`;
     }
     if (kind === 'image' && file.size > IMAGE_MAX_BYTES) {
-      return `Image exceeds the 10 MB limit (${formatBytes(file.size)}). Please choose a smaller file.`;
+      return `Image exceeds the 2 MB limit (${formatBytes(file.size)}). Please choose a smaller file.`;
     }
     if (kind === 'video' && file.size > VIDEO_MAX_BYTES) {
       return `Video exceeds the 20 MB limit (${formatBytes(file.size)}). Please choose a smaller file.`;
@@ -130,34 +158,48 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
     return null;
   }, []);
 
-  // ── Simulated upload ──────────────────────────────────────────
+  // ── Upload ────────────────────────────────────────────────────
 
-  const simulateUpload = useCallback(
+  const startUpload = useCallback(
     (file: File, kind: 'image' | 'video') => {
       setState('uploading');
       setProgress(0);
       setError(null);
 
-      // Build preview URL for both images and videos
       const previewUrl = URL.createObjectURL(file);
 
-      let current = 0;
-      const interval = setInterval(() => {
-        current += Math.random() * 18 + 6;
-        if (current >= 100) {
-          current = 100;
-          clearInterval(interval);
-          setProgress(100);
-          setTimeout(() => {
+      if (uploadPath) {
+        // Real Firebase upload
+        uploadToFirebase(file, uploadPath, setProgress)
+          .then((downloadUrl) => {
             setState('complete');
-            onChange({ file, previewUrl, type: kind });
-          }, 350);
-        } else {
-          setProgress(Math.round(current));
-        }
-      }, 120);
+            onChange({ file, previewUrl, type: kind, downloadUrl });
+          })
+          .catch((err) => {
+            console.error('Firebase upload error:', err);
+            setState('error');
+            setError('Upload failed. Please check your connection and try again.');
+          });
+      } else {
+        // Simulated progress (dev / no Firebase config yet)
+        let current = 0;
+        const interval = setInterval(() => {
+          current += Math.random() * 18 + 6;
+          if (current >= 100) {
+            current = 100;
+            clearInterval(interval);
+            setProgress(100);
+            setTimeout(() => {
+              setState('complete');
+              onChange({ file, previewUrl, type: kind });
+            }, 350);
+          } else {
+            setProgress(Math.round(current));
+          }
+        }, 120);
+      }
     },
-    [onChange],
+    [onChange, uploadPath],
   );
 
   // ── File selection handler ────────────────────────────────────
@@ -171,9 +213,9 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
         return;
       }
       const kind = classifyFile(file)!;
-      simulateUpload(file, kind);
+      startUpload(file, kind);
     },
-    [validate, simulateUpload],
+    [validate, startUpload],
   );
 
   // ── Drag & Drop ───────────────────────────────────────────────
@@ -238,14 +280,21 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
   // ── Download helper ───────────────────────────────────────────
 
   const handleDownload = useCallback(() => {
-    if (!value?.previewUrl) return;
+    const url = value?.downloadUrl || value?.previewUrl;
+    if (!url) return;
     const a = document.createElement('a');
-    a.href = value.previewUrl;
-    a.download = value.file.name;
+    a.href = url;
+    a.download = value!.file.name;
+    a.target = '_blank';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   }, [value]);
+
+  // ── Existing file section (edit mode) ────────────────────────
+
+  const showExisting = !!existingUrl && !value;
+  const existingType = existingUrl ? classifyUrl(existingUrl) : 'image';
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -263,8 +312,96 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
         aria-label="Upload media file"
       />
 
+      {/* ── Existing file from DB (edit mode) ────────────────── */}
+      {showExisting && (
+        <div className="w-full rounded-lg border border-border bg-card overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setExistingLightboxOpen(true)}
+            className="w-full relative group cursor-pointer focus:outline-none"
+          >
+            {existingType === 'image' ? (
+              <div className="relative w-full h-36 bg-muted">
+                <img
+                  src={existingUrl!}
+                  alt="Product photo"
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1.5 bg-white/90 text-zinc-800 rounded-full px-3 py-1.5 text-xs shadow-sm">
+                    <Eye className="size-3.5" />
+                    Preview
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative w-full h-36 bg-muted flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="size-14 rounded-xl bg-background/80 flex items-center justify-center shadow-sm">
+                    <FileVideo className="size-7 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Video file</p>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1.5 bg-white/90 text-zinc-800 rounded-full px-3 py-1.5 text-xs shadow-sm">
+                    <Play className="size-3.5" />
+                    Play
+                  </div>
+                </div>
+              </div>
+            )}
+          </button>
+          <div className="flex items-center gap-3 px-3 py-2.5 border-t">
+            <div className="size-8 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+              {existingType === 'image' ? (
+                <FileImage className="size-4 text-muted-foreground" />
+              ) : (
+                <FileVideo className="size-4 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm truncate text-muted-foreground">Saved file</p>
+              <span className="text-xs text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 className="size-3" />
+                Uploaded
+              </span>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = existingUrl!;
+                  a.target = '_blank';
+                  a.click();
+                }}
+                className="size-8 p-0 text-muted-foreground hover:text-foreground"
+                aria-label="Open file"
+              >
+                <Download className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  onExistingRemove?.();
+                  inputRef.current?.click();
+                }}
+                className="size-8 p-0 text-muted-foreground hover:text-destructive"
+                aria-label="Replace file"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Idle / Drop Zone ─────────────────────────────────── */}
-      {state === 'idle' && (
+      {state === 'idle' && !showExisting && (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -294,7 +431,7 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
               <span className="text-muted-foreground"> or drag and drop</span>
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              Images up to 10 MB &middot; Videos up to 20 MB
+              Images up to 2 MB &middot; Videos up to 20 MB
             </p>
             <p className="text-[11px] text-muted-foreground/50 mt-0.5">
               JPG, PNG, GIF, WebP, SVG, MP4, MOV, AVI, WebM, MKV
@@ -311,7 +448,7 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
               <UploadCloud className="size-4 text-primary animate-pulse" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm truncate">Uploading...</p>
+              <p className="text-sm truncate">Uploading to Firebase…</p>
               <p className="text-xs text-muted-foreground">{progress}% complete</p>
             </div>
           </div>
@@ -322,7 +459,6 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
       {/* ── Complete / Preview Card ──────────────────────────── */}
       {state === 'complete' && value && (
         <div className="w-full rounded-lg border border-border bg-card overflow-hidden transition-all duration-300">
-          {/* Clickable preview area */}
           <button
             type="button"
             onClick={() => setLightboxOpen(true)}
@@ -335,7 +471,6 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
                   alt={value.file.name}
                   className="w-full h-full object-contain"
                 />
-                {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1.5 bg-white/90 text-zinc-800 rounded-full px-3 py-1.5 text-xs shadow-sm">
                     <Eye className="size-3.5" />
@@ -351,7 +486,6 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
                   </div>
                   <p className="text-xs text-muted-foreground">Video file</p>
                 </div>
-                {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-200 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1.5 bg-white/90 text-zinc-800 rounded-full px-3 py-1.5 text-xs shadow-sm">
                     <Play className="size-3.5" />
@@ -362,7 +496,6 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
             )}
           </button>
 
-          {/* File info bar */}
           <div className="flex items-center gap-3 px-3 py-2.5 border-t">
             <div className="size-8 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
               {value.type === 'image' ? (
@@ -377,10 +510,17 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
                 <span className="text-xs text-muted-foreground">
                   {formatBytes(value.file.size)}
                 </span>
-                <span className="text-xs text-emerald-600 flex items-center gap-1">
-                  <CheckCircle2 className="size-3" />
-                  Ready
-                </span>
+                {value.downloadUrl ? (
+                  <span className="text-xs text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="size-3" />
+                    Uploaded
+                  </span>
+                ) : (
+                  <span className="text-xs text-amber-500 flex items-center gap-1">
+                    <CheckCircle2 className="size-3" />
+                    Ready
+                  </span>
+                )}
               </div>
             </div>
             <Button
@@ -424,10 +564,7 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setState('idle');
-                setError(null);
-              }}
+              onClick={() => { setState('idle'); setError(null); }}
               className="text-xs h-7 text-muted-foreground"
             >
               Dismiss
@@ -436,75 +573,54 @@ export function MediaUploader({ value, onChange, label }: MediaUploaderProps) {
         </div>
       )}
 
-      {/* ── Lightbox Dialog ──────────────────────────────────── */}
+      {/* ── Lightbox — new upload ─────────────────────────────── */}
       {value && (
         <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
           <DialogContent className="max-w-4xl w-[95vw] p-0 gap-0 border-none bg-zinc-950 overflow-hidden rounded-xl shadow-2xl [&>button]:text-white/70 [&>button]:hover:text-white [&>button]:top-3 [&>button]:right-3 [&>button]:z-20">
-            <DialogTitle className="sr-only">
-              {value.file.name}
-            </DialogTitle>
-
-            {/* Media area */}
+            <DialogTitle className="sr-only">{value.file.name}</DialogTitle>
             <div className="relative w-full flex items-center justify-center bg-zinc-950 min-h-[40vh] max-h-[75vh]">
               {value.type === 'image' && value.previewUrl ? (
-                <img
-                  src={value.previewUrl}
-                  alt={value.file.name}
-                  className="max-w-full max-h-[75vh] object-contain select-none"
-                  draggable={false}
-                />
+                <img src={value.previewUrl} alt={value.file.name} className="max-w-full max-h-[75vh] object-contain select-none" draggable={false} />
               ) : value.type === 'video' && value.previewUrl ? (
-                <video
-                  src={value.previewUrl}
-                  controls
-                  autoPlay
-                  className="max-w-full max-h-[75vh] outline-none"
-                  controlsList="nodownload"
-                >
+                <video src={value.previewUrl} controls autoPlay className="max-w-full max-h-[75vh] outline-none" controlsList="nodownload">
                   Your browser does not support video playback.
                 </video>
               ) : null}
             </div>
-
-            {/* Bottom info bar */}
             <div className="flex items-center gap-3 px-5 py-3.5 bg-zinc-900 border-t border-zinc-800">
               <div className="size-8 rounded-md bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                {value.type === 'image' ? (
-                  <FileImage className="size-4 text-zinc-400" />
-                ) : (
-                  <FileVideo className="size-4 text-zinc-400" />
-                )}
+                {value.type === 'image' ? <FileImage className="size-4 text-zinc-400" /> : <FileVideo className="size-4 text-zinc-400" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-zinc-200 truncate">{value.file.name}</p>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  {formatBytes(value.file.size)}
-                  {' \u00B7 '}
-                  {value.type === 'image' ? 'Image' : 'Video'}
-                </p>
+                <p className="text-xs text-zinc-500 mt-0.5">{formatBytes(value.file.size)} · {value.type === 'image' ? 'Image' : 'Video'}</p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDownload}
-                  className="size-8 p-0 text-zinc-400 hover:text-white hover:bg-zinc-800"
-                  aria-label="Download file"
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={handleDownload} className="size-8 p-0 text-zinc-400 hover:text-white hover:bg-zinc-800" aria-label="Download file">
                   <Download className="size-4" />
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => handleRemove(e)}
-                  className="size-8 p-0 text-zinc-400 hover:text-red-400 hover:bg-zinc-800"
-                  aria-label="Delete file"
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={(e) => handleRemove(e)} className="size-8 p-0 text-zinc-400 hover:text-red-400 hover:bg-zinc-800" aria-label="Delete file">
                   <Trash2 className="size-4" />
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* ── Lightbox — existing file ──────────────────────────── */}
+      {existingUrl && (
+        <Dialog open={existingLightboxOpen} onOpenChange={setExistingLightboxOpen}>
+          <DialogContent className="max-w-4xl w-[95vw] p-0 gap-0 border-none bg-zinc-950 overflow-hidden rounded-xl shadow-2xl [&>button]:text-white/70 [&>button]:hover:text-white [&>button]:top-3 [&>button]:right-3 [&>button]:z-20">
+            <DialogTitle className="sr-only">Product photo</DialogTitle>
+            <div className="relative w-full flex items-center justify-center bg-zinc-950 min-h-[40vh] max-h-[75vh]">
+              {existingType === 'image' ? (
+                <img src={existingUrl} alt="Product photo" className="max-w-full max-h-[75vh] object-contain select-none" draggable={false} />
+              ) : (
+                <video src={existingUrl} controls autoPlay className="max-w-full max-h-[75vh] outline-none">
+                  Your browser does not support video playback.
+                </video>
+              )}
             </div>
           </DialogContent>
         </Dialog>

@@ -123,6 +123,8 @@ export interface InventoryItem {
     unit: 'in' | 'cm' | 'mm';
   };
   sizeInInch?: number;
+  /** Firebase Storage download URL for the product photo or spec video */
+  photoUrl?: string;
   metadata?: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;

@@ -48,6 +48,7 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
     unit: 'in' as 'in' | 'cm' | 'mm',
   });
   const [attachment, setAttachment] = useState<UploadedFile | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (screen) {
@@ -64,17 +65,25 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
         depth: screen.dimensions.depth.toString(),
         unit: screen.dimensions.unit,
       });
+      setExistingPhotoUrl(screen.photoUrl || null);
     } else {
       setFormData({
         alias: '', model: '', manufacturer: '', sizeInInch: '', resolution: '',
         refreshRate: '', panelType: '', width: '', height: '', depth: '', unit: 'in',
       });
+      setExistingPhotoUrl(null);
     }
     setAttachment(null);
   }, [screen, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Determine the final photoUrl:
+    // - new upload wins if present and uploaded to Firebase
+    // - otherwise keep the existing URL (unless user removed it)
+    const photoUrl = attachment?.downloadUrl ?? existingPhotoUrl ?? undefined;
+
     onSubmit({
       type: 'screen',
       alias: formData.alias,
@@ -90,8 +99,11 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
         depth: Number(formData.depth),
         unit: formData.unit,
       },
+      photoUrl,
     });
   };
+
+  const isUploading = attachment !== null && !attachment.downloadUrl;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -168,7 +180,10 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
                 <MediaUploader
                   value={attachment}
                   onChange={setAttachment}
-                  label="Upload a product photo or spec sheet"
+                  label="Upload a product photo or spec video"
+                  uploadPath="inventory/screens"
+                  existingUrl={existingPhotoUrl}
+                  onExistingRemove={() => setExistingPhotoUrl(null)}
                 />
               </div>
             </div>
@@ -176,7 +191,9 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
 
           <SheetFooter className="px-6 py-4 border-t flex-shrink-0 flex-row justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit">{screen ? 'Update' : 'Add'} Screen</Button>
+            <Button type="submit" disabled={isUploading}>
+              {isUploading ? 'Uploading…' : `${screen ? 'Update' : 'Add'} Screen`}
+            </Button>
           </SheetFooter>
         </form>
       </SheetContent>
