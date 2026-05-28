@@ -141,10 +141,10 @@ function DrawingBuilderContent({
             <Printer className="mr-2 size-4" />
             Print
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+          {/* <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
             {isExporting ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Download className="mr-2 size-4" />}
             Export PDF
-          </Button>
+          </Button> */}
           {!readOnly && (
             <Button size="sm" 
             onClick={handleSave}

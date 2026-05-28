@@ -31,6 +31,7 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
   const [formData, setFormData] = useState({
     alias: '', model: '', manufacturer: '', maxLoadLbs: '', clearance: '',
     width: '', height: '', depth: '', unit: 'in' as 'in' | 'cm' | 'mm',
+    mountType: 'FIXED' as 'FIXED' | 'TILT' | 'FULL_MOTION',
   });
   const [attachment, setAttachment] = useState<UploadedFile | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
@@ -42,10 +43,11 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
         maxLoadLbs: mount.maxLoadLbs?.toString() || '', clearance: mount.clearance || '',
         width: mount.dimensions.width.toString(), height: mount.dimensions.height.toString(),
         depth: mount.dimensions.depth.toString(), unit: mount.dimensions.unit,
+        mountType: mount.mountType || 'FIXED',
       });
       setExistingPhotoUrl(mount.photoUrl || null);
     } else {
-      setFormData({ alias: '', model: '', manufacturer: '', maxLoadLbs: '', clearance: '', width: '', height: '', depth: '', unit: 'in' });
+      setFormData({ alias: '', model: '', manufacturer: '', maxLoadLbs: '', clearance: '', width: '', height: '', depth: '', unit: 'in', mountType: 'FIXED' });
       setExistingPhotoUrl(null);
     }
     setAttachment(null);
@@ -57,6 +59,7 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
     onSubmit({
       type: 'mount', alias: formData.alias, model: formData.model,
       manufacturer: formData.manufacturer || undefined,
+      mountType: formData.mountType,
       maxLoadLbs: formData.maxLoadLbs ? Number(formData.maxLoadLbs) : undefined,
       clearance: formData.clearance || undefined,
       dimensions: { width: Number(formData.width), height: Number(formData.height), depth: Number(formData.depth), unit: formData.unit },
@@ -81,6 +84,17 @@ export function MountFormDialog({ open, onOpenChange, mount, onSubmit }: MountFo
               <div className="space-y-2"><Label htmlFor="manufacturer">Brand</Label><Input id="manufacturer" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} placeholder="e.g., Peerless-AV" /></div>
               <div className="space-y-2"><Label htmlFor="maxLoadLbs">Maximum Load (lbs)</Label><Input id="maxLoadLbs" type="number" step="0.1" value={formData.maxLoadLbs} onChange={(e) => setFormData({ ...formData, maxLoadLbs: e.target.value })} placeholder="e.g., 150" /></div>
               <div className="space-y-2"><Label htmlFor="clearance">Clearance Needed</Label><Input id="clearance" value={formData.clearance} onChange={(e) => setFormData({ ...formData, clearance: e.target.value })} placeholder='e.g., 2" top, 2" sides' /></div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="mountType">Mount Type *</Label>
+                <Select value={formData.mountType} onValueChange={(v) => setFormData({ ...formData, mountType: v as any })}>
+                  <SelectTrigger id="mountType"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FIXED">Fixed</SelectItem>
+                    <SelectItem value="TILT">Tilt</SelectItem>
+                    <SelectItem value="FULL_MOTION">Full Motion</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="col-span-2 pt-4">
                 <h4 className="text-sm text-muted-foreground pb-3 border-b">Physical Dimensions</h4>
               </div>

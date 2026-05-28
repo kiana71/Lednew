@@ -145,7 +145,7 @@ export function Sidebar() {
         width: selected.dimensions.width,
         height: selected.dimensions.height,
         model: selected.model,
-        // We might want to update type if the mount has a type property compatible with our enum
+        type: (selected.mountType as any) || 'FIXED',
       });
     }
   };
@@ -315,22 +315,6 @@ export function Sidebar() {
         </div>
 
         <div className="space-y-3 pt-2">
-          <div className="space-y-1">
-            <Label className="text-xs">Type</Label>
-            <Select 
-              value={state.mount.type} 
-              onValueChange={(value: any) => updateMount({ type: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="FIXED">Fixed</SelectItem>
-                <SelectItem value="TILT">Tilt</SelectItem>
-                <SelectItem value="FULL_MOTION">Full Motion</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           {state.mount.depth > 0 && (
             <div className="bg-slate-50 border border-slate-200 rounded-md p-2 flex items-center justify-between text-[11px] text-slate-600 mt-2">
               <span><span className="font-medium text-slate-900">W:</span> {state.mount.width || 0}&quot;</span>
@@ -465,7 +449,7 @@ export function Sidebar() {
                   const next = Math.max(minFloorDistance, state.settings.floorDistance - 1);
                   updateSettings({ floorDistance: next });
                 }}
-              >−</Button>
+              >+</Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -475,7 +459,7 @@ export function Sidebar() {
                   const next = Math.min(400, state.settings.floorDistance + 1);
                   updateSettings({ floorDistance: next });
                 }}
-              >+</Button>
+              >-</Button>
             </div>
           </div>
           {/* AFF to Center */}

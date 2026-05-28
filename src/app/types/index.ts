@@ -139,6 +139,7 @@ export interface Screen extends InventoryItem {
 
 export interface Mount extends InventoryItem {
   type: 'mount';
+  mountType?: 'FIXED' | 'TILT' | 'FULL_MOTION';
   maxLoadLbs?: number;
   clearance?: string;
   /** Numeric total clearance in inches needed around the screen (used for niche calculations) */
