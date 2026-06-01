@@ -102,7 +102,7 @@ export function Sidebar() {
   const systemItems = navItems.filter((item) => item.section === 'system');
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 h-full flex flex-col overflow-y-auto">
+    <aside className="w-64 bg-white border-r border-slate-200 h-full flex flex-col overflow-hidden">
       {/* Logo/Brand */}
       <div className="px-5 py-5">
         <img

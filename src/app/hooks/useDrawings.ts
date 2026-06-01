@@ -5,7 +5,7 @@
  * Follows Single Responsibility Principle
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Drawing, SearchFilters, PaginationParams, SearchResult } from '../types';
 import { dataService } from '../services/DataService';
 
@@ -15,11 +15,12 @@ interface UseDrawingsOptions {
 }
 
 export function useDrawings(options: UseDrawingsOptions = {}) {
-  const { autoLoad = true, initialPageSize = 12 } = options;
+  const { autoLoad = true, initialPageSize = 20 } = options;
 
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState<PaginationParams>({
@@ -28,6 +29,8 @@ export function useDrawings(options: UseDrawingsOptions = {}) {
     sortBy: 'updatedAt',
     sortOrder: 'desc',
   });
+
+  const lastFiltersRef = React.useRef<SearchFilters | null>(null);
 
   const loadDrawings = useCallback(async (filters?: SearchFilters) => {
     try {
@@ -176,7 +179,10 @@ export function useDrawings(options: UseDrawingsOptions = {}) {
 
   const searchDrawings = useCallback(
     async (filters: SearchFilters) => {
-      // Check if there are actual filters to apply
+      lastFiltersRef.current = filters;
+      // Reset to page 1 whenever a new search/filter is applied
+      setPagination(prev => ({ ...prev, page: 1 }));
+
       const hasFilters = Object.keys(filters).some(key => {
         const value = filters[key as keyof SearchFilters];
         return value !== undefined && value !== null;
@@ -186,9 +192,10 @@ export function useDrawings(options: UseDrawingsOptions = {}) {
         setSearching(true);
         setError(null);
 
+        const firstPagePagination = { ...pagination, page: 1 };
         const response = hasFilters
-          ? await dataService.searchDrawings(filters, pagination)
-          : await dataService.getDrawings(pagination);
+          ? await dataService.searchDrawings(filters, firstPagePagination)
+          : await dataService.getDrawings(firstPagePagination);
 
         if (response.success && response.data) {
           setDrawings(response.data.items);
@@ -203,8 +210,38 @@ export function useDrawings(options: UseDrawingsOptions = {}) {
         setSearching(false);
       }
     },
-    [pagination]
+    [pagination.pageSize, pagination.sortBy, pagination.sortOrder]
   );
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || drawings.length >= total) return;
+
+    const nextPage = Math.floor(drawings.length / pagination.pageSize) + 1;
+    const nextPagination = { ...pagination, page: nextPage };
+    const filters = lastFiltersRef.current;
+
+    const hasFilters = filters && Object.keys(filters).some(key => {
+      const value = filters[key as keyof SearchFilters];
+      return value !== undefined && value !== null;
+    });
+
+    try {
+      setLoadingMore(true);
+      const response = hasFilters
+        ? await dataService.searchDrawings(filters!, nextPagination)
+        : await dataService.getDrawings(nextPagination);
+
+      if (response.success && response.data) {
+        setDrawings(prev => [...prev, ...response.data!.items]);
+        setTotal(response.data.total);
+        setPagination(prev => ({ ...prev, page: nextPage }));
+      }
+    } catch (err) {
+      console.error('Error loading more drawings:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [drawings.length, total, pagination, loadingMore]);
 
   const changePage = useCallback((page: number) => {
     setPagination(prev => ({ ...prev, page }));
@@ -230,6 +267,7 @@ export function useDrawings(options: UseDrawingsOptions = {}) {
     drawings,
     total,
     loading,
+    loadingMore,
     searching,
     error,
     pagination,
@@ -239,6 +277,7 @@ export function useDrawings(options: UseDrawingsOptions = {}) {
     deleteDrawing,
     duplicateDrawing,
     searchDrawings,
+    loadMore,
     changePage,
     changePageSize,
     changeSort,

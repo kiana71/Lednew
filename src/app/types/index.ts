@@ -35,6 +35,9 @@ export interface Drawing {
   description?: string;
   createdBy: string; // User ID
   createdByName: string; // Denormalized for display
+  /** Set on every save after the initial creation */
+  modifiedBy?: string;
+  modifiedByName?: string;
   createdAt: Date;
   updatedAt: Date;
   thumbnailUrl?: string;

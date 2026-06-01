@@ -61,19 +61,27 @@ export function BOMTable() {
                 {/* Mount Column */}
                 <div className="flex-1 py-0.5 px-2 flex items-center gap-2 overflow-hidden">
                   <span className="font-medium text-[9px] w-[35px] shrink-0">Mount</span>
-                  <span className="truncate text-[9px] flex-1">{mount.model ? `${obscureModel(mount.model)} (${mount.type})` : `${mount.type.replace('_', ' ')}`}</span>
-                  <span className="text-center text-[9px] w-[20px] shrink-0">{totalScreens}</span>
+                  <span className="truncate text-[9px] flex-1">
+                    {mount.depth > 0
+                      ? (mount.model ? `${obscureModel(mount.model)} (${mount.type.replace('_', ' ')})` : mount.type.replace('_', ' '))
+                      : '—'}
+                  </span>
+                  <span className="text-center text-[9px] w-[20px] shrink-0">{mount.depth > 0 ? totalScreens : ''}</span>
                 </div>
                 {/* Player Column */}
                 <div className="flex-1 py-0.5 px-2 flex items-center gap-2 overflow-hidden">
                   <span className="font-medium text-[9px] w-[35px] shrink-0">Player</span>
                   <span className="truncate text-[9px] flex-1">
-                    {mediaPlayer.alias ? `${mediaPlayer.alias}` : `Media Player`}
-                    <span className="text-[8px] text-slate-400 ml-1">
-                      ({mediaPlayer.position === 'BEHIND_SCREEN' ? 'Behind' : 'Remote'})
-                    </span>
+                    {mediaPlayer.depth > 0 || mediaPlayer.alias ? (
+                      <>
+                        {mediaPlayer.alias || 'Media Player'}
+                        <span className="text-[8px] text-slate-400 ml-1">
+                          ({mediaPlayer.position === 'BEHIND_SCREEN' ? 'Behind' : 'Remote'})
+                        </span>
+                      </>
+                    ) : '—'}
                   </span>
-                  <span className="text-center text-[9px] w-[20px] shrink-0">{totalScreens}</span>
+                  <span className="text-center text-[9px] w-[20px] shrink-0">{(mediaPlayer.depth > 0 || mediaPlayer.alias) ? totalScreens : ''}</span>
                 </div>
               </div>
             </td>

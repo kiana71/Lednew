@@ -203,17 +203,26 @@ export function DrawingCard({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-2 min-w-0">
-                  <UserAvatar name={drawing.createdByName} size="sm" />
+                  <UserAvatar name={drawing.modifiedByName || drawing.createdByName} size="sm" />
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs text-muted-foreground truncate">
-                      {drawing.createdByName}
+                      {drawing.modifiedByName || drawing.createdByName}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/60">Created by</span>
+                    <span className="text-[10px] text-muted-foreground/60">
+                      {drawing.modifiedByName ? 'Modified by' : 'Created by'}
+                    </span>
                   </div>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" align="start">
-                <p className="text-xs">Created by {drawing.createdByName}</p>
+                {drawing.modifiedByName ? (
+                  <div className="text-xs space-y-0.5">
+                    <p>Modified by {drawing.modifiedByName}</p>
+                    <p className="text-muted-foreground">Created by {drawing.createdByName}</p>
+                  </div>
+                ) : (
+                  <p className="text-xs">Created by {drawing.createdByName}</p>
+                )}
               </TooltipContent>
             </Tooltip>
           )}

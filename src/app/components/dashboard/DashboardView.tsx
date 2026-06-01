@@ -11,7 +11,7 @@
  * - Delete confirmation dialog
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDrawings } from '../../hooks/useDrawings';
@@ -68,8 +68,23 @@ export function DashboardView() {
   const {
     drawings, loading, searching, error,
     searchDrawings, deleteDrawing, duplicateDrawing, updateDrawing,
-    total, loadDrawings,
+    total, loadDrawings, loadMore, loadingMore,
   } = useDrawings({ autoLoad: false });
+
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const handleSentinel = useCallback((entries: IntersectionObserverEntry[]) => {
+    if (entries[0].isIntersecting) loadMore();
+  }, [loadMore]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(handleSentinel, { threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [handleSentinel]);
 
   // Inventory state — hook always called (React rules), but UI hidden for viewers
   const {
@@ -223,11 +238,22 @@ export function DashboardView() {
           onShare={canShare ? (d) => setDrawingToShare(d) : undefined}
         />
 
+        {/* Infinite scroll sentinel */}
         {!loading && drawings.length > 0 && (
-          <div className="flex items-center justify-center gap-2 pt-4">
+          <div className="flex flex-col items-center gap-2 pt-4 pb-2">
             <p className="text-sm text-muted-foreground">
-              Showing {drawings.length} of {total} drawings
+              Showing {drawings.length} of {total} {total === 1 ? 'drawing' : 'drawings'}
             </p>
+            {drawings.length < total && (
+              <div ref={sentinelRef} className="flex items-center gap-2 text-xs text-muted-foreground/60 pt-1">
+                {loadingMore && (
+                  <>
+                    <div className="size-3.5 border-2 border-muted-foreground/30 border-t-muted-foreground/70 rounded-full animate-spin" />
+                    Loading more…
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>

@@ -513,16 +513,6 @@ export function Canvas() {
                       <line x1="0" y1="0" x2={screenWidth} y2={screenHeight} stroke="#64748b" strokeWidth={0.01} opacity="0.3" />
                       <line x1={screenWidth} y1="0" x2="0" y2={screenHeight} stroke="#64748b" strokeWidth={0.01} opacity="0.3" />
                       
-                      {/* Alias / Model Name on the bottom left of each screen */}
-                      <text 
-                        x="0.1" 
-                        y={screenHeight - 0.1} 
-                        fontSize={0.12} 
-                        fill="#94a3b8"
-                        fontFamily="sans-serif"
-                      >
-                        {screen.alias || screen.model || 'Display'}
-                      </text>
                     </g>
                   ))}
                 </g>

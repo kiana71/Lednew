@@ -20,7 +20,7 @@ export function MainLayout() {
   const isSuperadmin = user?.role === 'superadmin';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="fixed inset-0 flex overflow-hidden bg-slate-50">
       {isSuperadmin && <Sidebar />}
       <div className="flex-1 flex flex-col min-w-0">
         <UserProfileBar />
