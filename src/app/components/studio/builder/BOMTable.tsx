@@ -3,7 +3,7 @@ import React from 'react';
 import { useDrawingContext } from './DrawingContext';
 
 export function BOMTable() {
-  const { state, nicheDimensions, nicheDepth } = useDrawingContext();
+  const { state, orientedScreen, nicheDimensions, nicheDepth } = useDrawingContext();
   const { screen, mount, mediaPlayer, grid } = state;
 
   const totalScreens = grid.rows * grid.cols;
@@ -34,9 +34,9 @@ export function BOMTable() {
             <td className="py-2 px-2 truncate max-w-[120px] text-[10px] text-slate-900">{screen.alias || screen.model || 'LED Display Panel'}</td>
             <td className="py-2 px-2 text-center font-bold text-[10px] text-slate-900">{totalScreens}</td>
             <td className="py-2 px-2 text-right whitespace-nowrap font-bold text-[10px] text-slate-900">
-              <span className="text-slate-500 font-normal mr-1">W:</span>{screen.width} 
-              <span className="text-slate-500 font-normal mx-1">H:</span>{screen.height} 
-              <span className="text-slate-500 font-normal mx-1">D:</span>{screen.depth}
+              <span className="text-slate-500 font-normal mr-1">W:</span>{orientedScreen.width} 
+              <span className="text-slate-500 font-normal mx-1">H:</span>{orientedScreen.height} 
+              <span className="text-slate-500 font-normal mx-1">D:</span>{orientedScreen.depth}
             </td>
           </tr>
 
