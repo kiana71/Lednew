@@ -1,6 +1,16 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { useDrawingContext } from './DrawingContext';
+import { getConfiguredReceptacleBoxes } from './installationNoteTemplate';
+import {
+  computeReceptacleBoxEdgeGuides,
+  findReceptacleBoxGapsToShow,
+  resolveReceptacleBoxPositionNoOverlap,
+  type BoxEdgeGuide,
+  type ReceptacleBoxGapToShow,
+  type SideBySideBoxGap,
+  type StackedBoxGap,
+} from './receptacleBoxDistanceGuides';
+import type { ReceptacleBoxConfig } from './types';
 import { LETTER_WIDTH, LETTER_HEIGHT, roundToNearestQuarter } from './utils';
 import { BOMTable } from './BOMTable';
 import { useInventory } from '../../../hooks/useInventory';
@@ -8,6 +18,324 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 const PAPER_WIDTH_PX = 1056; // 11 inches * 96 DPI
 const PAPER_HEIGHT_PX = 816; // 8.5 inches * 96 DPI
+
+function guideStroke(guide: BoxEdgeGuide): string {
+  return guide.source === 'box' ? '#2563eb' : '#ef4444';
+}
+
+function ReceptacleBoxHorizontalGapAnnotation({
+  gap,
+  scale,
+  offsetX,
+  offsetY,
+}: {
+  gap: SideBySideBoxGap;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+}) {
+  const x1 = offsetX + gap.xStart * scale;
+  const x2 = offsetX + gap.xEnd * scale;
+  const midX = (x1 + x2) / 2;
+  const gapWidth = x2 - x1;
+  const yLine = offsetY + gap.yTop * scale - 0.05;
+  const overlapHeightScaled = gap.overlapHeight * scale;
+  const leaderHeight = Math.max(
+    0.55,
+    overlapHeightScaled * 0.75 + 0.3,
+    gapWidth < 0.2 ? 0.65 : 0.55,
+  );
+  const labelY = yLine - leaderHeight;
+  const color = '#2563eb';
+  const dotRadius = 0.018;
+  const yBoxTop = offsetY + gap.yTop * scale;
+
+  return (
+    <g>
+      <line
+        x1={x1}
+        y1={yLine}
+        x2={x1}
+        y2={yBoxTop + 0.015}
+        stroke={color}
+        strokeWidth={0.01}
+        strokeDasharray="0.025 0.025"
+        opacity={0.55}
+      />
+      <line
+        x1={x2}
+        y1={yLine}
+        x2={x2}
+        y2={yBoxTop + 0.015}
+        stroke={color}
+        strokeWidth={0.01}
+        strokeDasharray="0.025 0.025"
+        opacity={0.55}
+      />
+      <line
+        x1={x1}
+        y1={yLine}
+        x2={x2}
+        y2={yLine}
+        stroke={color}
+        strokeWidth={0.018}
+        strokeDasharray="0.022 0.024"
+        strokeLinecap="round"
+      />
+      <circle cx={x1} cy={yLine} r={dotRadius} fill={color} />
+      <circle cx={x2} cy={yLine} r={dotRadius} fill={color} />
+      <line
+        x1={midX}
+        y1={yLine}
+        x2={midX}
+        y2={labelY + dotRadius}
+        stroke={color}
+        strokeWidth={0.018}
+      />
+      <circle cx={midX} cy={yLine} r={dotRadius * 0.8} fill={color} />
+      <circle cx={midX} cy={labelY} r={dotRadius * 0.8} fill={color} />
+      <text
+        x={midX}
+        y={labelY - 0.08}
+        textAnchor="middle"
+        fontSize={0.12}
+        fontWeight={500}
+        fill={color}
+      >
+        {`Gap ${gap.gap.toFixed(1)}"`}
+      </text>
+    </g>
+  );
+}
+
+function ReceptacleBoxVerticalGapAnnotation({
+  gap,
+  scale,
+  offsetX,
+  offsetY,
+}: {
+  gap: StackedBoxGap;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+}) {
+  const y1 = offsetY + gap.yStart * scale;
+  const y2 = offsetY + gap.yEnd * scale;
+  const midY = (y1 + y2) / 2;
+  const gapHeight = y2 - y1;
+  const xLine = offsetX + gap.xLeft * scale - 0.05;
+  const overlapWidthScaled = gap.overlapWidth * scale;
+  const leaderWidth = Math.max(
+    0.55,
+    overlapWidthScaled * 0.75 + 0.3,
+    gapHeight < 0.2 ? 0.65 : 0.55,
+  );
+  const labelX = xLine - leaderWidth;
+  const color = '#2563eb';
+  const dotRadius = 0.018;
+  const xBoxLeft = offsetX + gap.xLeft * scale;
+
+  return (
+    <g>
+      <line
+        x1={xLine}
+        y1={y1}
+        x2={xBoxLeft + 0.015}
+        y2={y1}
+        stroke={color}
+        strokeWidth={0.01}
+        strokeDasharray="0.025 0.025"
+        opacity={0.55}
+      />
+      <line
+        x1={xLine}
+        y1={y2}
+        x2={xBoxLeft + 0.015}
+        y2={y2}
+        stroke={color}
+        strokeWidth={0.01}
+        strokeDasharray="0.025 0.025"
+        opacity={0.55}
+      />
+      <line
+        x1={xLine}
+        y1={y1}
+        x2={xLine}
+        y2={y2}
+        stroke={color}
+        strokeWidth={0.018}
+        strokeDasharray="0.022 0.024"
+        strokeLinecap="round"
+      />
+      <circle cx={xLine} cy={y1} r={dotRadius} fill={color} />
+      <circle cx={xLine} cy={y2} r={dotRadius} fill={color} />
+      <line
+        x1={xLine}
+        y1={midY}
+        x2={labelX + dotRadius}
+        y2={midY}
+        stroke={color}
+        strokeWidth={0.018}
+      />
+      <circle cx={xLine} cy={midY} r={dotRadius * 0.8} fill={color} />
+      <circle cx={labelX} cy={midY} r={dotRadius * 0.8} fill={color} />
+      <text
+        x={labelX - 0.08}
+        y={midY}
+        textAnchor="end"
+        dominantBaseline="middle"
+        fontSize={0.12}
+        fontWeight={500}
+        fill={color}
+      >
+        {`Gap ${gap.gap.toFixed(1)}"`}
+      </text>
+    </g>
+  );
+}
+
+function ReceptacleBoxGapAnnotation({
+  gap,
+  scale,
+  offsetX,
+  offsetY,
+}: {
+  gap: ReceptacleBoxGapToShow;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+}) {
+  if (gap.orientation === 'horizontal') {
+    return (
+      <ReceptacleBoxHorizontalGapAnnotation
+        gap={gap}
+        scale={scale}
+        offsetX={offsetX}
+        offsetY={offsetY}
+      />
+    );
+  }
+
+  return (
+    <ReceptacleBoxVerticalGapAnnotation
+      gap={gap}
+      scale={scale}
+      offsetX={offsetX}
+      offsetY={offsetY}
+    />
+  );
+}
+
+function ReceptacleBoxDragGuides({
+  box,
+  others,
+  totalWidth,
+  totalHeight,
+  scale,
+}: {
+  box: ReceptacleBoxConfig;
+  others: ReceptacleBoxConfig[];
+  totalWidth: number;
+  totalHeight: number;
+  scale: number;
+}) {
+  const guides = computeReceptacleBoxEdgeGuides(
+    box,
+    others,
+    totalWidth,
+    totalHeight,
+  );
+  const w = box.width * scale;
+  const h = box.height * scale;
+  const midX = w / 2;
+  const midY = h / 2;
+
+  const leftLen = guides.left.distance * scale;
+  const rightLen = guides.right.distance * scale;
+  const topLen = guides.top.distance * scale;
+  const bottomLen = guides.bottom.distance * scale;
+
+  return (
+    <g>
+      <line
+        x1={-leftLen}
+        y1={midY}
+        x2={0}
+        y2={midY}
+        stroke={guideStroke(guides.left)}
+        strokeWidth={0.01}
+        strokeDasharray="0.05"
+      />
+      <text
+        x={-leftLen / 2}
+        y={midY - 0.05}
+        textAnchor="middle"
+        fontSize={0.12}
+        fill={guideStroke(guides.left)}
+      >
+        {guides.left.distance.toFixed(1)}&quot;
+      </text>
+
+      <line
+        x1={midX}
+        y1={-topLen}
+        x2={midX}
+        y2={0}
+        stroke={guideStroke(guides.top)}
+        strokeWidth={0.01}
+        strokeDasharray="0.05"
+      />
+      <text
+        x={midX + 0.05}
+        y={-topLen / 2}
+        textAnchor="start"
+        fontSize={0.12}
+        fill={guideStroke(guides.top)}
+      >
+        {guides.top.distance.toFixed(1)}&quot;
+      </text>
+
+      <line
+        x1={w}
+        y1={midY}
+        x2={w + rightLen}
+        y2={midY}
+        stroke={guideStroke(guides.right)}
+        strokeWidth={0.01}
+        strokeDasharray="0.05"
+      />
+      <text
+        x={w + rightLen / 2}
+        y={midY - 0.05}
+        textAnchor="middle"
+        fontSize={0.12}
+        fill={guideStroke(guides.right)}
+      >
+        {guides.right.distance.toFixed(1)}&quot;
+      </text>
+
+      <line
+        x1={midX}
+        y1={h}
+        x2={midX}
+        y2={h + bottomLen}
+        stroke={guideStroke(guides.bottom)}
+        strokeWidth={0.01}
+        strokeDasharray="0.05"
+      />
+      <text
+        x={midX + 0.05}
+        y={h + bottomLen / 2}
+        textAnchor="start"
+        fontSize={0.12}
+        fill={guideStroke(guides.bottom)}
+      >
+        {guides.bottom.distance.toFixed(1)}&quot;
+      </text>
+    </g>
+  );
+}
+
 export function Canvas() {
   const { 
     state, 
@@ -21,6 +349,7 @@ export function Canvas() {
   } = useDrawingContext();
 
   const { grid, receptacleBoxes, view, mode, nicheSettings } = state;
+  const configuredReceptacleBoxes = getConfiguredReceptacleBoxes(receptacleBoxes);
   // Use orientedScreen for all layout so vertical/horizontal is respected
   const screen = orientedScreen;
   const { zoom, pan, showLayers } = view;
@@ -68,6 +397,11 @@ export function Canvas() {
   const contentOffsetX = (mode === 'NICHE' || mode === 'TABLE_NICHE') ? nicheSettings.clearanceSides * scale : 0;
   const contentOffsetY = (mode === 'NICHE' || mode === 'TABLE_NICHE') ? nicheSettings.clearanceTopBottom * scale : 0;
 
+  const ledAreaWidth =
+    drawingWidthInches -
+    (mode === 'NICHE' || mode === 'TABLE_NICHE' ? nicheSettings.clearanceSides * 2 : 0);
+  const ledAreaHeight = screen.height * grid.rows;
+
   // Helper to convert screen pixels to SVG inch coordinates
   const getMousePosInInches = (e: React.MouseEvent | MouseEvent) => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -90,7 +424,7 @@ export function Canvas() {
     e.stopPropagation();
     
     const pos = getMousePosInInches(e);
-    const box = receptacleBoxes.find(b => b.id === boxId);
+    const box = configuredReceptacleBoxes.find(b => b.id === boxId);
     
     if (box) {
       setDraggingBoxId(boxId);
@@ -103,7 +437,7 @@ export function Canvas() {
     const handleMouseMove = (e: MouseEvent) => {
       if (!draggingBoxId) return;
       
-      const box = receptacleBoxes.find(b => b.id === draggingBoxId);
+      const box = configuredReceptacleBoxes.find(b => b.id === draggingBoxId);
       if (!box) return;
 
       const pos = getMousePosInInches(e);
@@ -135,7 +469,7 @@ export function Canvas() {
       }
 
       // 2. Snap to Other Boxes (Alignment)
-      receptacleBoxes.forEach(otherBox => {
+      configuredReceptacleBoxes.forEach(otherBox => {
         if (otherBox.id === draggingBoxId) return;
 
         // X Alignment
@@ -209,6 +543,22 @@ export function Canvas() {
       newPosX = Math.max(0, Math.min(newPosX, totalWidth - box.width));
       newPosY = Math.max(0, Math.min(newPosY, totalHeight - box.height));
 
+      // 5. Prevent overlapping other receptacle boxes
+      const others = configuredReceptacleBoxes.filter((b) => b.id !== draggingBoxId);
+      if (others.length > 0) {
+        const resolved = resolveReceptacleBoxPositionNoOverlap(
+          newPosX,
+          newPosY,
+          box.width,
+          box.height,
+          others,
+          { maxX: totalWidth, maxY: totalHeight },
+          { x: box.posX, y: box.posY },
+        );
+        newPosX = resolved.posX;
+        newPosY = resolved.posY;
+      }
+
       setGuides(activeGuides);
       updateReceptacleBox(draggingBoxId, { posX: newPosX, posY: newPosY });
     };
@@ -227,7 +577,7 @@ export function Canvas() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [draggingBoxId, dragStart, boxStartPos, scale, updateReceptacleBox, receptacleBoxes, startX, startY, contentOffsetX, contentOffsetY, drawingWidthInches, mode, nicheSettings, screen.height, grid.rows]);
+  }, [draggingBoxId, dragStart, boxStartPos, scale, updateReceptacleBox, configuredReceptacleBoxes, startX, startY, contentOffsetX, contentOffsetY, drawingWidthInches, mode, nicheSettings, screen.height, grid.rows]);
 
   return (
     <div className="w-full h-full flex items-center justify-center overflow-hidden bg-slate-200 p-8 print:p-0 print:bg-white print:overflow-visible">
@@ -370,7 +720,7 @@ export function Canvas() {
                         fill="#64748b"
                         transform={`rotate(-90, -0.15, ${midY})`}
                       >
-                        {(state.settings.affLabel ?? state.settings.floorDistance)}" AFF to Center
+                        {(state.settings.affLabel ?? 0)}" AFF to Center
                       </text>
                     </g>
                   );
@@ -520,7 +870,7 @@ export function Canvas() {
             </g>
 
             {/* Receptacle Boxes */}
-            {showLayers.receptacleBox && receptacleBoxes.map((box) => (
+            {showLayers.receptacleBox && configuredReceptacleBoxes.map((box) => (
               <g 
                 key={box.id}
                 transform={`translate(${contentOffsetX + (box.posX * scale)}, ${contentOffsetY + (box.posY * scale)})`}
@@ -565,92 +915,31 @@ export function Canvas() {
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill={draggingBoxId === box.id ? "rgba(239, 68, 68, 0.2)" : "rgba(148, 163, 184, 0.2)"} />
                 </svg>
                 
-                {/* Distance to edges lines (Smart Guides for this box) */}
                 {draggingBoxId === box.id && (
-                  <g>
-                    {/* Line to Left Edge of Screen Area */}
-                    <line 
-                      x1={-box.posX * scale} 
-                      y1={(box.height * scale) / 2} 
-                      x2={0} 
-                      y2={(box.height * scale) / 2} 
-                      stroke="red" 
-                      strokeWidth={0.01} 
-                      strokeDasharray="0.05" 
-                    />
-                    <text 
-                      x={(-box.posX * scale) / 2} 
-                      y={(box.height * scale) / 2 - 0.05} 
-                      textAnchor="middle" 
-                      fontSize={0.12} 
-                      fill="red"
-                    >
-                      {box.posX.toFixed(1)}"
-                    </text>
-
-                    {/* Line to Top Edge of Screen Area */}
-                    <line 
-                      x1={(box.width * scale) / 2} 
-                      y1={-box.posY * scale} 
-                      x2={(box.width * scale) / 2} 
-                      y2={0} 
-                      stroke="red" 
-                      strokeWidth={0.01} 
-                      strokeDasharray="0.05" 
-                    />
-                    <text 
-                      x={(box.width * scale) / 2 + 0.05} 
-                      y={(-box.posY * scale) / 2} 
-                      textAnchor="start" 
-                      fontSize={0.12} 
-                      fill="red"
-                    >
-                      {box.posY.toFixed(1)}"
-                    </text>
-
-                    {/* Line to Right Edge of Screen Area */}
-                    <line 
-                      x1={box.width * scale} 
-                      y1={(box.height * scale) / 2} 
-                      x2={((screen.width * grid.cols) - box.posX) * scale} 
-                      y2={(box.height * scale) / 2} 
-                      stroke="red" 
-                      strokeWidth={0.01} 
-                      strokeDasharray="0.05" 
-                    />
-                    <text 
-                      x={((box.width * scale) + (((screen.width * grid.cols) - box.posX) * scale)) / 2} 
-                      y={(box.height * scale) / 2 - 0.05} 
-                      textAnchor="middle" 
-                      fontSize={0.12} 
-                      fill="red"
-                    >
-                      {((screen.width * grid.cols) - (box.posX + box.width)).toFixed(1)}"
-                    </text>
-
-                    {/* Line to Bottom Edge of Screen Area */}
-                    <line 
-                      x1={(box.width * scale) / 2} 
-                      y1={box.height * scale} 
-                      x2={(box.width * scale) / 2} 
-                      y2={((screen.height * grid.rows) - box.posY) * scale} 
-                      stroke="red" 
-                      strokeWidth={0.01} 
-                      strokeDasharray="0.05" 
-                    />
-                    <text 
-                      x={(box.width * scale) / 2 + 0.05} 
-                      y={((box.height * scale) + (((screen.height * grid.rows) - box.posY) * scale)) / 2} 
-                      textAnchor="start" 
-                      fontSize={0.12} 
-                      fill="red"
-                    >
-                      {((screen.height * grid.rows) - (box.posY + box.height)).toFixed(1)}"
-                    </text>
-                  </g>
+                  <ReceptacleBoxDragGuides
+                    box={box}
+                    others={configuredReceptacleBoxes.filter((b) => b.id !== box.id)}
+                    totalWidth={ledAreaWidth}
+                    totalHeight={ledAreaHeight}
+                    scale={scale}
+                  />
                 )}
               </g>
             ))}
+
+            {showLayers.receptacleBoxGaps &&
+              configuredReceptacleBoxes.length >= 2 &&
+              findReceptacleBoxGapsToShow(configuredReceptacleBoxes).map(
+                (gap, index) => (
+                  <ReceptacleBoxGapAnnotation
+                    key={`${gap.orientation}-${index}`}
+                    gap={gap}
+                    scale={scale}
+                    offsetX={contentOffsetX}
+                    offsetY={contentOffsetY}
+                  />
+                ),
+              )}
 
             {/* Dimensions Lines */}
             {showLayers.dimensions && (
@@ -975,6 +1264,7 @@ export function Canvas() {
                 strokeWidth={0.02} 
               />
             )}
+            
             {guides.y !== null && (
               <line 
                 x1={0} 

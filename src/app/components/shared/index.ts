@@ -22,12 +22,16 @@ export {
   PasswordRequirements,
   PasswordMatchIndicator,
 } from './PasswordStrength';
+
 export type { PasswordStrengthResult } from './PasswordStrength';
 
 export { CompanyCombobox } from './CompanyCombobox';
 
 export { MediaUploader } from './MediaUploader';
+
 export type { UploadedFile } from './MediaUploader';
+
+export { InventoryProductSpecsFields } from './InventoryProductSpecsFields';
 
 export {
   DashboardSkeleton,
@@ -36,3 +40,12 @@ export {
   AdminSkeleton,
   StudioSkeleton,
 } from './skeletons';
+
+
+
+
+
+
+
+
+

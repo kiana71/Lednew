@@ -19,6 +19,11 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { MediaUploader, UploadedFile } from '../shared';
+import {
+  DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE,
+  RECEPTACLE_BOX_MOUNT_TYPES,
+  type ReceptacleBoxMountType,
+} from '../../constants/receptacleBoxTypes';
 
 interface ReceptacleBoxFormDialogProps {
   open: boolean;
@@ -31,6 +36,7 @@ export function ReceptacleBoxFormDialog({ open, onOpenChange, receptacleBox, onS
   const [formData, setFormData] = useState({
     alias: '', model: '', manufacturer: '',
     width: '', height: '', depth: '', unit: 'in' as 'in' | 'cm' | 'mm',
+    boxType: DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE as ReceptacleBoxMountType,
   });
   const [attachment, setAttachment] = useState<UploadedFile | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
@@ -41,10 +47,14 @@ export function ReceptacleBoxFormDialog({ open, onOpenChange, receptacleBox, onS
         alias: receptacleBox.alias, model: receptacleBox.model, manufacturer: receptacleBox.manufacturer || '',
         width: receptacleBox.dimensions.width.toString(), height: receptacleBox.dimensions.height.toString(),
         depth: receptacleBox.dimensions.depth.toString(), unit: receptacleBox.dimensions.unit,
+        boxType: receptacleBox.boxType ?? DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE,
       });
       setExistingPhotoUrl(receptacleBox.photoUrl || null);
     } else {
-      setFormData({ alias: '', model: '', manufacturer: '', width: '', height: '', depth: '', unit: 'in' });
+      setFormData({
+        alias: '', model: '', manufacturer: '', width: '', height: '', depth: '', unit: 'in',
+        boxType: DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE,
+      });
       setExistingPhotoUrl(null);
     }
     setAttachment(null);
@@ -57,6 +67,7 @@ export function ReceptacleBoxFormDialog({ open, onOpenChange, receptacleBox, onS
       type: 'receptacleBox', alias: formData.alias, model: formData.model,
       manufacturer: formData.manufacturer || undefined,
       dimensions: { width: Number(formData.width), height: Number(formData.height), depth: Number(formData.depth), unit: formData.unit },
+      boxType: formData.boxType,
       photoUrl,
     });
   };
@@ -76,6 +87,20 @@ export function ReceptacleBoxFormDialog({ open, onOpenChange, receptacleBox, onS
               <div className="col-span-2 space-y-2"><Label htmlFor="alias">Alias *</Label><Input id="alias" value={formData.alias} onChange={(e) => setFormData({ ...formData, alias: e.target.value })} required placeholder="e.g., Recessed Power Box" /></div>
               <div className="space-y-2"><Label htmlFor="model">MFG. Part *</Label><Input id="model" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} required placeholder="e.g., WB-100" /></div>
               <div className="space-y-2"><Label htmlFor="manufacturer">Brand</Label><Input id="manufacturer" value={formData.manufacturer} onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })} placeholder="e.g., Datacomm" /></div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="boxType">Receptacle Box Type</Label>
+                <Select
+                  value={formData.boxType}
+                  onValueChange={(v) => setFormData({ ...formData, boxType: v as ReceptacleBoxMountType })}
+                >
+                  <SelectTrigger id="boxType"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RECEPTACLE_BOX_MOUNT_TYPES.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="col-span-2 pt-4">
                 <h4 className="text-sm text-muted-foreground pb-3 border-b">Physical Dimensions</h4>
               </div>

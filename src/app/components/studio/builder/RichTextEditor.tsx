@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Toggle } from '../../ui/toggle';
@@ -23,6 +23,15 @@ export function RichTextEditor({ content, onChange }: RichTextEditorProps) {
       },
     },
   });
+
+  // Keep editor in sync when content is updated externally (default template, live box changes)
+  useEffect(() => {
+    if (!editor) return;
+    const current = editor.getHTML();
+    if (content !== current) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+  }, [editor, content]);
 
   if (!editor) {
     return null;

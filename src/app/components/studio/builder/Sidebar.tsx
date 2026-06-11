@@ -13,6 +13,17 @@ import { inventoryService } from '../../../services/InventoryService';
 import { Screen, Mount, MediaPlayer, ReceptacleBox } from '../../../types';
 import { RichTextEditor } from './RichTextEditor';
 import { SearchableSelect } from './SearchableSelect';
+import { getDrawingSaveValidation } from './drawingValidation';
+import { cn } from '../../ui/utils';
+import { DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE } from '../../../constants/receptacleBoxTypes';
+import {
+  buildDefaultInstallationNoteHtml,
+  DEFAULT_INSTALLATION_NOTE_NAME,
+  getConfiguredReceptacleBoxes,
+  receptacleBoxesTemplateKey,
+} from './installationNoteTemplate';
+
+const PLACEHOLDER_BOX_ROW_LABEL = 'Choose from the box';
 
 export function Sidebar() {
   const { 
@@ -33,7 +44,12 @@ export function Sidebar() {
     removeNote,
     selectNote,
     readOnly,
+    showRequiredFieldErrors,
   } = useDrawingContext();
+
+  const saveValidation = getDrawingSaveValidation(state);
+  const showAffError = showRequiredFieldErrors && saveValidation.aff;
+  const showScreenError = showRequiredFieldErrors && saveValidation.screen;
 
   // Inventory State
   const [screens, setScreens] = useState<Screen[]>([]);
@@ -51,9 +67,54 @@ export function Sidebar() {
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   const [sidebarSelectedNoteId, setSidebarSelectedNoteId] = useState<string | null>(null);
 
-  // Calculate dynamic minimum floor distance:
-  // 1. Hard minimum of 20 inches for the AFF input itself
-  // 2. Must be at least half the screen height (+ 1 inch clearance) so the screen never touches or overlaps the floor
+  useEffect(() => {
+    if (state.selectedNoteId) {
+      setSidebarSelectedNoteId(state.selectedNoteId);
+    }
+  }, [state.selectedNoteId]);
+
+  const receptacleTemplateKey = receptacleBoxesTemplateKey(
+    state.receptacleBoxes,
+    selectedBoxId,
+  );
+
+  const applyDefaultNoteTemplate = () => {
+    const content = buildDefaultInstallationNoteHtml(
+      state.receptacleBoxes,
+      selectedBoxId,
+    );
+    const templateFields = {
+      name: DEFAULT_INSTALLATION_NOTE_NAME,
+      content,
+      templateSource: 'receptacle-in-wall' as const,
+    };
+    if (sidebarSelectedNoteId) {
+      updateNote(sidebarSelectedNoteId, templateFields);
+      selectNote(sidebarSelectedNoteId);
+      return;
+    }
+    const newId = addNote();
+    updateNote(newId, templateFields);
+    setSidebarSelectedNoteId(newId);
+    selectNote(newId);
+  };
+
+  // Keep template-linked notes in sync when box count or dimensions change
+  useEffect(() => {
+    if (readOnly) return;
+    const content = buildDefaultInstallationNoteHtml(
+      state.receptacleBoxes,
+      selectedBoxId,
+    );
+    for (const note of state.notes) {
+      if (note.templateSource === 'receptacle-in-wall' && note.content !== content) {
+        updateNote(note.id, { content });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receptacleTemplateKey, readOnly]);
+
+  // Minimum floor distance (drawing zoom layout): at least half the screen height (+ 1") so the screen never overlaps the floor
   const totalScreenHeight = orientedScreen.height * state.grid.rows;
   const minFloorDistance = Math.max(20, Math.ceil(totalScreenHeight / 2) + 1);
 
@@ -64,12 +125,22 @@ export function Sidebar() {
     }
   }, [minFloorDistance, state.settings.floorDistance, updateSettings]);
 
-  // Select first box on mount
+  // Select first box when none is selected; keep one starter row for the dropdown
   useEffect(() => {
-    if (state.receptacleBoxes.length > 0 && !selectedBoxId) {
+    if (readOnly) return;
+    if (state.receptacleBoxes.length === 0) {
+      const newId = addReceptacleBox();
+      setSelectedBoxId(newId);
+      return;
+    }
+    if (!selectedBoxId) {
       setSelectedBoxId(state.receptacleBoxes[0].id);
     }
-  }, [state.receptacleBoxes, selectedBoxId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.receptacleBoxes, selectedBoxId, readOnly]);
+
+  const hasConfiguredReceptacleBox =
+    getConfiguredReceptacleBoxes(state.receptacleBoxes).length > 0;
 
   // Fetch Inventory
   useEffect(() => {
@@ -175,25 +246,61 @@ export function Sidebar() {
     }
   };
 
-  const handleReceptacleBoxSelect = (inventoryId: string) => {
-    if (!selectedBoxId) return;
+  const activeBoxId =
+    selectedBoxId ?? state.receptacleBoxes[0]?.id ?? null;
+
+  const getReceptacleBoxSelectValue = (box: (typeof state.receptacleBoxes)[0]) => {
+    if (!box.inventoryId) return 'none';
+    return box.inventoryId;
+  };
+
+  const receptacleBoxSelectOptions = [
+    { value: 'none', label: 'Select a box' },
+    { value: 'custom', label: 'Custom Box' },
+    ...receptacleBoxes.map((b) => ({
+      value: b.id,
+      label: b.model + (b.alias ? ` — ${b.alias}` : ''),
+    })),
+  ];
+
+  const handleReceptacleBoxSelect = (boxId: string, inventoryId: string) => {
+    if (inventoryId === 'none') {
+      updateReceptacleBox(boxId, {
+        inventoryId: undefined,
+        model: undefined,
+        boxType: undefined,
+        configured: false,
+      });
+      return;
+    }
 
     if (inventoryId === 'custom') {
-      updateReceptacleBox(selectedBoxId, { inventoryId, model: 'Custom Box' });
+      updateReceptacleBox(boxId, {
+        inventoryId,
+        model: 'Custom Box',
+        boxType: DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE,
+        configured: true,
+      });
       return;
     }
     const selected = receptacleBoxes.find(b => b.id === inventoryId);
     if (selected) {
-      updateReceptacleBox(selectedBoxId, {
+      updateReceptacleBox(boxId, {
         inventoryId,
         width: selected.dimensions.width,
         height: selected.dimensions.height,
         model: selected.model,
+        boxType: selected.boxType ?? DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE,
+        configured: true,
       });
     }
   };
 
-  const currentBox = state.receptacleBoxes.find(b => b.id === selectedBoxId);
+  const handleAddReceptacleBox = () => {
+    const newId = addReceptacleBox();
+    setSelectedBoxId(newId);
+  };
+
   const currentSidebarNote = state.notes.find(n => n.id === sidebarSelectedNoteId);
 
   return (
@@ -260,6 +367,7 @@ export function Sidebar() {
             placeholder="Select a screen..."
             searchPlaceholder="Search screens..."
             disabled={readOnly}
+            invalid={showScreenError}
             options={[
               { value: 'none', label: 'No Screen Selected' },
               ...screens.map(s => ({
@@ -268,6 +376,7 @@ export function Sidebar() {
               })),
             ]}
           />
+          <p className="text-[11px] text-slate-500">required</p>
         </div>
 
         {state.screen.width > 0 && (
@@ -435,51 +544,59 @@ export function Sidebar() {
       {/* 3.5 Environment Settings */}
       <div className="space-y-4">
         <h3 className="font-semibold text-sm text-slate-900">Environment Settings</h3>
-        <div className="flex gap-3">
-          {/* Drawing Zoom */}
-          <div className="flex-1 space-y-1">
-            <Label className="text-xs">Drawing Zoom</Label>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 flex-1 p-0 text-base"
-                disabled={readOnly || state.settings.floorDistance <= minFloorDistance}
-                onClick={() => {
-                  const next = Math.max(minFloorDistance, state.settings.floorDistance - 1);
-                  updateSettings({ floorDistance: next });
-                }}
-              >+</Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 flex-1 p-0 text-base"
-                disabled={readOnly || state.settings.floorDistance >= 400}
-                onClick={() => {
-                  const next = Math.min(400, state.settings.floorDistance + 1);
-                  updateSettings({ floorDistance: next });
-                }}
-              >-</Button>
-            </div>
+        <div className="space-y-3">
+          <div className="flex w-full items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 flex-1 min-w-8 p-0 text-base"
+              disabled={readOnly || state.settings.floorDistance <= minFloorDistance}
+              onClick={() => {
+                const next = Math.max(minFloorDistance, state.settings.floorDistance - 1);
+                updateSettings({ floorDistance: next });
+              }}
+            >
+              +
+            </Button>
+            <Label className="text-xs text-slate-700 shrink-0 px-1">Drawing Zoom</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 flex-1 min-w-8 p-0 text-base"
+              disabled={readOnly || state.settings.floorDistance >= 400}
+              onClick={() => {
+                const next = Math.min(400, state.settings.floorDistance + 1);
+                updateSettings({ floorDistance: next });
+              }}
+            >
+              -
+            </Button>
           </div>
-          {/* AFF to Center */}
-          <div className="flex-1 space-y-1">
+          <p className="text-[11px] leading-snug text-slate-500">
+            Drawing zoom adjusts on screen layout only. It is not true architectural scale use
+            dimension labels.
+          </p>
+          <div className="space-y-1">
             <Label className="text-xs">AFF to Center (in)</Label>
             <Input
               type="number"
-              min={1}
+              min={0}
               max={400}
-              value={state.settings.affLabel ?? state.settings.floorDistance}
+              value={state.settings.affLabel ?? 0}
               onChange={(e) => {
                 const val = Number(e.target.value);
-                if (!isNaN(val) && val >= 1 && val <= 400) {
+                if (!isNaN(val) && val >= 0 && val <= 400) {
                   updateSettings({ affLabel: val });
                 }
               }}
-              className="h-8 text-xs w-full"
+              className={cn(
+                'h-8 text-xs w-full',
+                showAffError && 'border-red-500 focus-visible:ring-red-500',
+              )}
               disabled={readOnly}
-              placeholder="AFF"
+              placeholder="0"
             />
+            <p className="text-[11px] text-slate-500">required</p>
           </div>
         </div>
       </div>
@@ -564,159 +681,187 @@ export function Sidebar() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm text-slate-900">Receptacle Box</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              const newId = addReceptacleBox();
-              setSelectedBoxId(newId);
-            }}
-            className="h-7 text-xs"
-            disabled={readOnly}
-          >
-            <Plus className="size-3 mr-1" /> Add
-          </Button>
+          {hasConfiguredReceptacleBox && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddReceptacleBox}
+              className="h-7 text-xs"
+              disabled={readOnly}
+            >
+              <Plus className="size-3 mr-1" /> Add
+            </Button>
+          )}
         </div>
 
-        {/* List of Boxes */}
         <div className="space-y-2">
-          {state.receptacleBoxes.map((box, index) => (
-            <div 
-              key={box.id} 
-              className={`flex items-center justify-between p-2 rounded border text-sm cursor-pointer ${selectedBoxId === box.id ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'}`}
+          {state.receptacleBoxes.map((box) => (
+            <div
+              key={box.id}
+              className={`rounded border border-slate-200 bg-white shadow-none px-2 py-1 ${
+                box.inventoryId === 'custom' ? 'space-y-2' : ''
+              }`}
               onClick={() => setSelectedBoxId(box.id)}
             >
-              <span>{box.model || `Box ${index + 1}`}</span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-slate-400 hover:text-blue-500"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const newId = addReceptacleBox(box);
-                    setSelectedBoxId(newId);
-                  }}
-                  title="Duplicate box"
-                  disabled={readOnly}
+              <div className="flex items-center gap-2 py-0">
+                <div
+                  className="flex-1 min-w-0 py-0"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <Copy className="size-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-slate-400 hover:text-red-500"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeReceptacleBox(box.id);
-                    if (selectedBoxId === box.id) setSelectedBoxId(null);
-                  }}
-                  disabled={readOnly}
+                  <SearchableSelect
+                    key={box.id}
+                    flat
+                    value={getReceptacleBoxSelectValue(box)}
+                    onValueChange={(value) => handleReceptacleBoxSelect(box.id, value)}
+                    placeholder={PLACEHOLDER_BOX_ROW_LABEL}
+                    searchPlaceholder="Search boxes..."
+                    disabled={readOnly}
+                    options={receptacleBoxSelectOptions}
+                  />
+                </div>
+                <div
+                  className="flex shrink-0 items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <Minus className="size-3" />
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-slate-400 hover:text-blue-500"
+                    onClick={() => {
+                      const newId = addReceptacleBox(box);
+                      setSelectedBoxId(newId);
+                    }}
+                    title="Duplicate box"
+                    disabled={readOnly}
+                  >
+                    <Copy className="size-3" />
+                  </Button>
+                  {state.receptacleBoxes.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-400 hover:text-red-500"
+                      onClick={() => {
+                        removeReceptacleBox(box.id);
+                        if (activeBoxId === box.id) {
+                          const remaining = state.receptacleBoxes.filter((b) => b.id !== box.id);
+                          setSelectedBoxId(remaining[0]?.id ?? null);
+                        }
+                      }}
+                      title="Remove box"
+                      disabled={readOnly}
+                    >
+                      <Minus className="size-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              {box.inventoryId === 'custom' && (
+                <div
+                  className="grid grid-cols-2 gap-3 pt-2 pb-1 border-t border-slate-200"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="space-y-1">
+                    <Label className="text-xs">Width (in)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={box.width}
+                      onChange={(e) =>
+                        updateReceptacleBox(box.id, {
+                          width: Math.max(0, Number(e.target.value)),
+                        })
+                      }
+                      disabled={readOnly}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Height (in)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={box.height}
+                      onChange={(e) =>
+                        updateReceptacleBox(box.id, {
+                          height: Math.max(0, Number(e.target.value)),
+                        })
+                      }
+                      disabled={readOnly}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Pos X (in)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={(orientedScreen.width * state.grid.cols) - box.width}
+                      value={box.posX}
+                      onChange={(e) => {
+                        const maxPosX =
+                          orientedScreen.width * state.grid.cols - box.width;
+                        const val = Math.max(0, Math.min(Number(e.target.value), maxPosX));
+                        updateReceptacleBox(box.id, { posX: val });
+                      }}
+                      disabled={readOnly}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Pos Y (in)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={(orientedScreen.height * state.grid.rows) - box.height}
+                      value={box.posY}
+                      onChange={(e) => {
+                        const maxPosY =
+                          orientedScreen.height * state.grid.rows - box.height;
+                        const val = Math.max(0, Math.min(Number(e.target.value), maxPosY));
+                        updateReceptacleBox(box.id, { posY: val });
+                      }}
+                      disabled={readOnly}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        
-        {/* Inventory Selector for Selected Box */}
-        {selectedBoxId && currentBox && (
-          <div className="space-y-4 pt-2 border-t">
-            <div className="space-y-1">
-              <SearchableSelect
-                key={selectedBoxId}
-                value={currentBox.inventoryId ?? 'custom'}
-                onValueChange={handleReceptacleBoxSelect}
-                placeholder="Select a box..."
-                searchPlaceholder="Search boxes..."
-                disabled={readOnly}
-                options={[
-                  { value: 'custom', label: 'Custom Box' },
-                  ...receptacleBoxes.map(b => ({
-                    value: b.id,
-                    label: b.model + (b.alias ? ` — ${b.alias}` : ''),
-                  })),
-                ]}
-              />
-            </div>
-
-            {currentBox.inventoryId === 'custom' && (
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">Width (in)</Label>
-                  <Input 
-                    type="number" 
-                    min={0}
-                    value={currentBox.width} 
-                    onChange={(e) => updateReceptacleBox(selectedBoxId, { width: Math.max(0, Number(e.target.value)) })}
-                    disabled={readOnly}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Height (in)</Label>
-                  <Input 
-                    type="number" 
-                    min={0}
-                    value={currentBox.height} 
-                    onChange={(e) => updateReceptacleBox(selectedBoxId, { height: Math.max(0, Number(e.target.value)) })}
-                    disabled={readOnly}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Pos X (in)</Label>
-                  <Input 
-                    type="number" 
-                    min={0}
-                    max={(orientedScreen.width * state.grid.cols) - currentBox.width}
-                    value={currentBox.posX} 
-                    onChange={(e) => {
-                      const maxPosX = (orientedScreen.width * state.grid.cols) - currentBox.width;
-                      const val = Math.max(0, Math.min(Number(e.target.value), maxPosX));
-                      updateReceptacleBox(selectedBoxId, { posX: val });
-                    }}
-                    disabled={readOnly}
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label className="text-xs">Pos Y (in)</Label>
-                  <Input 
-                    type="number" 
-                    min={0}
-                    max={(orientedScreen.height * state.grid.rows) - currentBox.height}
-                    value={currentBox.posY} 
-                    onChange={(e) => {
-                      const maxPosY = (orientedScreen.height * state.grid.rows) - currentBox.height;
-                      const val = Math.max(0, Math.min(Number(e.target.value), maxPosY));
-                      updateReceptacleBox(selectedBoxId, { posY: val });
-                    }}
-                    disabled={readOnly}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      <Separator />
+
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-sm text-slate-900">Installation Notes</h3>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              const newId = addNote();
-              setSidebarSelectedNoteId(newId);
-              selectNote(newId);
-            }}
-            className="h-7 text-xs"
-            disabled={readOnly}
-          >
-            <Plus className="size-3 mr-1" /> Add
-          </Button>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold text-sm text-slate-900 shrink-0">Installation Notes</h3>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={applyDefaultNoteTemplate}
+              className="h-7 text-xs"
+              disabled={readOnly}
+              title="Fill selected note with default in-wall box text (uses receptacle box count and size)"
+            >
+              Default
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const newId = addNote();
+                setSidebarSelectedNoteId(newId);
+                selectNote(newId);
+              }}
+              className="h-7 text-xs"
+              disabled={readOnly}
+            >
+              <Plus className="size-3 mr-1" /> Add
+            </Button>
+          </div>
         </div>
 
         {/* List of Notes */}

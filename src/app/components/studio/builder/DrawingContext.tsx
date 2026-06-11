@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { 
   AppState, 
   ScreenConfig, 
@@ -17,6 +17,18 @@ import {
   calculateNicheDepth, 
   calculateNicheDimensions 
 } from './utils';
+import { getDrawingSaveValidation } from './drawingValidation';
+
+export function createPlaceholderReceptacleBox(): ReceptacleBoxConfig {
+  return {
+    id: crypto.randomUUID(),
+    width: 6,
+    height: 6,
+    posX: 10,
+    posY: 10,
+    configured: false,
+  };
+}
 
 // Initial default state based on prompt examples
 const defaultState: AppState = {
@@ -44,18 +56,10 @@ const defaultState: AppState = {
     clearanceTopBottom: 2,
     depthVariant: 0.5,
   },
-  receptacleBoxes: [
-    {
-      id: 'default-box',
-      width: 6,
-      height: 6,
-      posX: 10,
-      posY: 10,
-    }
-  ],
+  receptacleBoxes: [createPlaceholderReceptacleBox()],
   settings: {
     floorDistance: 60, // 5ft default
-    affLabel: 60,      // displayed AFF number (independent of layout)
+    affLabel: 0,       // displayed AFF number (independent of layout); must be > 0 to save
     woodBacking: false,
     woodBackingClearance: 3,
     drawingNumber: 'New Drawing',
@@ -77,6 +81,7 @@ const defaultState: AppState = {
       centerLine: true,
       dimensions: true,
       receptacleBox: true,
+      receptacleBoxGaps: false,
       woodBacking: true,
       sideView: true,
     },
@@ -94,6 +99,8 @@ export const DrawingProvider = ({
   initialState?: Partial<AppState>;
   readOnly?: boolean;
 }) => {
+  const [showRequiredFieldErrors, setShowRequiredFieldErrors] = useState(false);
+
   const [state, setState] = useState<AppState>(() => {
     if (!initialState) return defaultState;
     return {
@@ -112,7 +119,12 @@ export const DrawingProvider = ({
         showLayers: { ...defaultState.view.showLayers, ...initialState.view?.showLayers },
       },
       notes: initialState.notes ?? defaultState.notes,
-      receptacleBoxes: initialState.receptacleBoxes ?? defaultState.receptacleBoxes,
+      receptacleBoxes: (() => {
+        const boxes = initialState.receptacleBoxes;
+        if (boxes === undefined) return defaultState.receptacleBoxes;
+        if (boxes.length === 0) return [createPlaceholderReceptacleBox()];
+        return boxes;
+      })(),
     };
   });
 
@@ -173,6 +185,7 @@ export const DrawingProvider = ({
       height: 6,
       posX: 10,
       posY: 10,
+      configured: false,
     };
     setState((prev: AppState) => ({
       ...prev,
@@ -278,6 +291,16 @@ export const DrawingProvider = ({
     }));
   };
 
+  const validateForSave = useCallback(() => {
+    const result = getDrawingSaveValidation(state);
+    if (!result.isValid) {
+      setShowRequiredFieldErrors(true);
+      return false;
+    }
+    setShowRequiredFieldErrors(false);
+    return true;
+  }, [state]);
+
   return (
     <DrawingContext.Provider
       value={{
@@ -305,6 +328,8 @@ export const DrawingProvider = ({
         totalDrawWidth,
         nicheDepth,
         nicheDimensions,
+        showRequiredFieldErrors,
+        validateForSave,
       }}
     >
       {children}

@@ -18,7 +18,8 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { MediaUploader, UploadedFile } from '../shared';
+import { MediaUploader, UploadedFile, InventoryProductSpecsFields } from '../shared';
+import { DEFAULT_RJ45 } from '../../constants/inventoryProductSpecs';
 
 interface MediaPlayerFormDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ export function MediaPlayerFormDialog({ open, onOpenChange, mediaPlayer, onSubmi
   const [formData, setFormData] = useState({
     alias: '', model: '', manufacturer: '',
     width: '', height: '', depth: '', unit: 'in' as 'in' | 'cm' | 'mm',
+    powerConsumption: '', weight: '', rj45: DEFAULT_RJ45,
   });
   const [attachment, setAttachment] = useState<UploadedFile | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
@@ -41,10 +43,16 @@ export function MediaPlayerFormDialog({ open, onOpenChange, mediaPlayer, onSubmi
         alias: mediaPlayer.alias, model: mediaPlayer.model, manufacturer: mediaPlayer.manufacturer || '',
         width: mediaPlayer.dimensions.width.toString(), height: mediaPlayer.dimensions.height.toString(),
         depth: mediaPlayer.dimensions.depth.toString(), unit: mediaPlayer.dimensions.unit,
+        powerConsumption: mediaPlayer.powerConsumption ?? '',
+        weight: mediaPlayer.weight ?? '',
+        rj45: mediaPlayer.rj45 ?? DEFAULT_RJ45,
       });
       setExistingPhotoUrl(mediaPlayer.photoUrl || null);
     } else {
-      setFormData({ alias: '', model: '', manufacturer: '', width: '', height: '', depth: '', unit: 'in' });
+      setFormData({
+        alias: '', model: '', manufacturer: '', width: '', height: '', depth: '', unit: 'in',
+        powerConsumption: '', weight: '', rj45: DEFAULT_RJ45,
+      });
       setExistingPhotoUrl(null);
     }
     setAttachment(null);
@@ -57,6 +65,9 @@ export function MediaPlayerFormDialog({ open, onOpenChange, mediaPlayer, onSubmi
       type: 'mediaPlayer', alias: formData.alias, model: formData.model,
       manufacturer: formData.manufacturer || undefined,
       dimensions: { width: Number(formData.width), height: Number(formData.height), depth: Number(formData.depth), unit: formData.unit },
+      powerConsumption: formData.powerConsumption.trim(),
+      weight: formData.weight.trim(),
+      rj45: formData.rj45,
       photoUrl,
     });
   };
@@ -83,6 +94,16 @@ export function MediaPlayerFormDialog({ open, onOpenChange, mediaPlayer, onSubmi
               <div className="space-y-2"><Label htmlFor="width">Width *</Label><Input id="width" type="number" step="0.01" value={formData.width} onChange={(e) => setFormData({ ...formData, width: e.target.value })} required placeholder="e.g., 4.5" /></div>
               <div className="space-y-2"><Label htmlFor="depth">Depth *</Label><Input id="depth" type="number" step="0.01" value={formData.depth} onChange={(e) => setFormData({ ...formData, depth: e.target.value })} required placeholder="e.g., 4.5" /></div>
               <div className="space-y-2"><Label htmlFor="unit">Unit *</Label><Select value={formData.unit} onValueChange={(v) => setFormData({ ...formData, unit: v as any })}><SelectTrigger id="unit"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="in">Inches</SelectItem><SelectItem value="cm">Centimeters</SelectItem><SelectItem value="mm">Millimeters</SelectItem></SelectContent></Select></div>
+
+              <InventoryProductSpecsFields
+                showVesa={false}
+                values={{
+                  powerConsumption: formData.powerConsumption,
+                  weight: formData.weight,
+                  rj45: formData.rj45,
+                }}
+                onChange={(updates) => setFormData({ ...formData, ...updates })}
+              />
 
               <div className="col-span-2 pt-4">
                 <h4 className="text-sm text-muted-foreground pb-3 border-b">Attachment</h4>

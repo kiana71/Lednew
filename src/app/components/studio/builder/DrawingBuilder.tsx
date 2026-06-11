@@ -1,8 +1,8 @@
-
 import React, { useRef, useState } from 'react';
 import { DrawingProvider, useDrawingContext } from './DrawingContext';
 import { Sidebar } from './Sidebar';
-import { Canvas } from './Canvas';
+import { Canvas }
+ from './Canvas';
 import { Toolbar } from './Toolbar';
 import { BOMTable } from './BOMTable';
 import { NotesEditor } from './NotesEditor';
@@ -25,8 +25,8 @@ export function DrawingBuilder({ initialState, onSave, onBack, title = 'Drawing 
   return (
     <DrawingProvider initialState={initialState} readOnly={readOnly}>
       <DrawingBuilderContent 
-        onSave={onSave} 
-        onBack={onBack} 
+        onSave={onSave}
+        onBack={onBack}
         title={title}
         onTitleChange={onTitleChange}
         readOnly={readOnly}
@@ -48,7 +48,7 @@ function DrawingBuilderContent({
   onTitleChange?: (title: string) => void;
   readOnly?: boolean;
 }) {
-  const { state, updateSettings } = useDrawingContext();
+  const { state, updateSettings, validateForSave } = useDrawingContext();
   const [isExporting, setIsExporting] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -56,6 +56,11 @@ function DrawingBuilderContent({
   const [hasIncrementedRevisionThisSession, setHasIncrementedRevisionThisSession] = useState(false);
   
   const handleSave = () => {
+    if (!validateForSave()) {
+      toast.error('Please fill up required fields.');
+      return;
+    }
+
     let newRev = state.settings.revision;
 
     // Only increment revision ONCE per editor session (when they first open and save it)
@@ -121,22 +126,21 @@ function DrawingBuilderContent({
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden print:h-auto print:overflow-visible print:bg-white">
       {/* Header */}
       <header className="border-b bg-white px-6 py-3 flex items-center justify-between shrink-0 print:hidden">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
+        <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
+          <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">
             <ArrowLeft className="mr-2 size-4" />
             Back
           </Button>
-          <div className="h-8 w-px bg-border" />
+          <div className="h-8 w-px bg-border shrink-0" />
           <input
-            className="font-semibold bg-transparent border-0 outline-none focus:ring-0 p-0 w-64 placeholder:text-muted-foreground"
+            className="font-semibold bg-transparent border-0 outline-none focus:ring-0 p-0 min-w-0 flex-1 placeholder:text-muted-foreground"
             value={title}
             onChange={(e) => onTitleChange?.(e.target.value)}
             placeholder="Untitled Drawing"
             disabled={readOnly}
           />
-
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={() => window.print()}>
             <Printer className="mr-2 size-4" />
             Print
@@ -146,10 +150,7 @@ function DrawingBuilderContent({
             Export PDF
           </Button> */}
           {!readOnly && (
-            <Button size="sm" 
-            onClick={handleSave}
-            // onClick={console.log('the save button is clicked, the WALL GRID is not recognized ⚠️⚠️⚠️🔴🔴')}
-            >
+            <Button size="sm" onClick={handleSave}>
               <Save className="mr-2 size-4" />
               Save
             </Button>

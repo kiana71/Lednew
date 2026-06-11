@@ -47,6 +47,10 @@ export interface ReceptacleBoxConfig {
   posY: number; // Distance from Screen Top Edge (Inches)
   model?: string;
   inventoryId?: string; // Tracks the selected dropdown value
+  /** When false, box exists in sidebar only until user picks from the dropdown. */
+  configured?: boolean;
+  /** From inventory; defaults to in-wall when unset. */
+  boxType?: 'IN_WALL' | 'SURFACE_MOUNT';
 }
 
 export interface DrawingSettings {
@@ -62,6 +66,8 @@ export interface InstallationNote {
   id: string;
   name: string;
   content: string;
+  /** When set, note content auto-updates from receptacle box count/size */
+  templateSource?: 'receptacle-in-wall';
 }
 
 export interface AppState {
@@ -101,6 +107,7 @@ export interface AppState {
       centerLine: boolean;
       dimensions: boolean;
       receptacleBox: boolean;
+      receptacleBoxGaps: boolean;
       woodBacking: boolean;
       sideView: boolean;
     };
@@ -133,4 +140,6 @@ export interface DrawingContextType {
   totalDrawWidth: number;
   nicheDepth: number;
   nicheDimensions: { width: number; height: number };
+  showRequiredFieldErrors: boolean;
+  validateForSave: () => boolean;
 }

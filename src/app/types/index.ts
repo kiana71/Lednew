@@ -111,7 +111,7 @@ export interface CanvasSettings {
   zoom: number;
 }
 
-// ==================== Inventory Types (Future Implementation) ====================
+import type { InventoryProductSpecs } from '../constants/inventoryProductSpecs';
 
 export interface InventoryItem {
   id: string;
@@ -133,7 +133,7 @@ export interface InventoryItem {
   updatedAt: Date;
 }
 
-export interface Screen extends InventoryItem {
+export interface Screen extends InventoryItem, InventoryProductSpecs {
   type: 'screen';
   resolution?: string;
   refreshRate?: number;
@@ -151,7 +151,7 @@ export interface Mount extends InventoryItem {
   weightCapacity?: number;
 }
 
-export interface MediaPlayer extends InventoryItem {
+export interface MediaPlayer extends InventoryItem, InventoryProductSpecs {
   type: 'mediaPlayer';
   supportedFormats?: string[];
   connectivity?: string[];
@@ -161,6 +161,8 @@ export interface ReceptacleBox extends InventoryItem {
   type: 'receptacleBox';
   outletCount?: number;
   voltage?: string;
+  /** In wall (flush-mount) vs surface-mount — drives installation note wording. */
+  boxType?: 'IN_WALL' | 'SURFACE_MOUNT';
 }
 
 // ==================== Search & Filter Types ====================

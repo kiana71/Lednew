@@ -25,6 +25,9 @@ interface SearchableSelectProps {
   searchPlaceholder?: string;
   emptyText?: string;
   disabled?: boolean;
+  invalid?: boolean;
+  /** Flatter trigger: no shadow, compact height — used in receptacle box rows. */
+  flat?: boolean;
 }
 
 export function SearchableSelect({
@@ -35,6 +38,8 @@ export function SearchableSelect({
   searchPlaceholder = 'Search...',
   emptyText = 'No results found.',
   disabled = false,
+  invalid = false,
+  flat = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
 
@@ -48,7 +53,13 @@ export function SearchableSelect({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full justify-between font-normal h-9 text-sm truncate"
+          className={cn(
+            'w-full justify-between font-normal text-sm truncate',
+            flat
+              ? 'h-8 rounded-md border-0 bg-white shadow-none hover:bg-slate-50 focus-visible:ring-0 focus-visible:shadow-none'
+              : 'h-9 shadow-none',
+            invalid && 'border border-red-500 focus-visible:ring-red-500',
+          )}
         >
           <span className="truncate">
             {selected ? selected.label : placeholder}
@@ -56,7 +67,11 @@ export function SearchableSelect({
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+      <PopoverContent
+        className={cn('p-0', flat && '!shadow-none border-0')}
+        align="start"
+        style={{ width: 'var(--radix-popover-trigger-width)' }}
+      >
         <Command
           value={selected?.label ?? ''}
           onValueChange={() => {}}

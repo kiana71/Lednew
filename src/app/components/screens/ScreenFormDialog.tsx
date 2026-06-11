@@ -24,7 +24,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { MediaUploader, UploadedFile } from '../shared';
+import { MediaUploader, UploadedFile, InventoryProductSpecsFields } from '../shared';
+import { DEFAULT_RJ45, DEFAULT_VESA } from '../../constants/inventoryProductSpecs';
 
 interface ScreenFormDialogProps {
   open: boolean;
@@ -46,6 +47,10 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
     height: '',
     depth: '',
     unit: 'in' as 'in' | 'cm' | 'mm',
+    powerConsumption: '',
+    weight: '',
+    vesa: DEFAULT_VESA,
+    rj45: DEFAULT_RJ45,
   });
   const [attachment, setAttachment] = useState<UploadedFile | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
@@ -64,12 +69,17 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
         height: screen.dimensions.height.toString(),
         depth: screen.dimensions.depth.toString(),
         unit: screen.dimensions.unit,
+        powerConsumption: screen.powerConsumption ?? '',
+        weight: screen.weight ?? '',
+        vesa: screen.vesa ?? DEFAULT_VESA,
+        rj45: screen.rj45 ?? DEFAULT_RJ45,
       });
       setExistingPhotoUrl(screen.photoUrl || null);
     } else {
       setFormData({
         alias: '', model: '', manufacturer: '', sizeInInch: '', resolution: '',
         refreshRate: '', panelType: '', width: '', height: '', depth: '', unit: 'in',
+        powerConsumption: '', weight: '', vesa: DEFAULT_VESA, rj45: DEFAULT_RJ45,
       });
       setExistingPhotoUrl(null);
     }
@@ -99,6 +109,10 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
         depth: Number(formData.depth),
         unit: formData.unit,
       },
+      powerConsumption: formData.powerConsumption.trim(),
+      weight: formData.weight.trim(),
+      vesa: formData.vesa,
+      rj45: formData.rj45,
       photoUrl,
     });
   };
@@ -172,6 +186,16 @@ export function ScreenFormDialog({ open, onOpenChange, screen, onSubmit }: Scree
                   </SelectContent>
                 </Select>
               </div>
+
+              <InventoryProductSpecsFields
+                values={{
+                  powerConsumption: formData.powerConsumption,
+                  weight: formData.weight,
+                  vesa: formData.vesa,
+                  rj45: formData.rj45,
+                }}
+                onChange={(updates) => setFormData({ ...formData, ...updates })}
+              />
 
               <div className="col-span-2 pt-4">
                 <h4 className="text-sm text-muted-foreground pb-3 border-b">Attachment</h4>

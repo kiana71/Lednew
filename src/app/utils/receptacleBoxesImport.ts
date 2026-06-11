@@ -71,11 +71,16 @@ export function importReceptacleBoxesFromGoogleSheets(csvText: string, delimiter
         const height = parseDimensionValue(row['Height (in)'] || '0');
         const depth = parseDimensionValue(row['Depth (in)'] || '0');
 
+        const typeRaw = row['Receptacle Box Type']?.trim().toLowerCase() ?? '';
+        const boxType =
+          typeRaw.includes('surface') ? 'SURFACE_MOUNT' : 'IN_WALL';
+
         const box: Partial<ReceptacleBox> = {
           type: 'receptacleBox',
           alias: row.Alias.trim(),
           model: row['MFG. PART']?.trim() || 'Unknown',
           manufacturer: row.Brand?.trim() || 'Unknown',
+          boxType,
           dimensions: {
             width,
             height,
@@ -116,14 +121,17 @@ export function downloadReceptacleBoxesTemplate() {
   const headers = [
     'MFG. PART',
     'Brand',
+    'Receptacle Box Type',
     'Width (in)',
     'Height (in)',
     'Depth (in)',
     'Alias',
   ];
+
   const exampleRow = [
     'WB-100',
     'Datacomm',
+    'In wall (Flush-Mount)',
     '6',
     '4.5',
     '3.5',

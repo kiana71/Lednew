@@ -1,11 +1,13 @@
 
 import React from 'react';
 import { useDrawingContext } from './DrawingContext';
+import { getConfiguredReceptacleBoxes } from './installationNoteTemplate';
 import { Button } from '../../ui/button';
 import { 
   ZoomIn, 
   ZoomOut, 
   Maximize, 
+  ArrowLeftRight,
   Layers,
   Ruler,
   Zap,
@@ -160,13 +162,35 @@ export function Toolbar() {
                   onPressedChange={() => toggleLayer('receptacleBox')}
                   aria-label="Toggle Receptacle Box"
                   className="data-[state=on]:bg-red-100 data-[state=on]:text-red-700"
-                  disabled={readOnly || state.receptacleBoxes.length === 0}
+                  disabled={readOnly || getConfiguredReceptacleBoxes(state.receptacleBoxes).length === 0}
                 >
                   <Zap className="size-4" />
                 </Toggle>
               </div>
             </TooltipTrigger>
             <TooltipContent className="bg-slate-800 text-white text-xs px-2 py-1 border-none shadow-md">Show/Hide Receptacle Boxes</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Toggle 
+                  pressed={showLayers.receptacleBoxGaps} 
+                  onPressedChange={() => toggleLayer('receptacleBoxGaps')}
+                  aria-label="Toggle Receptacle Box Gaps"
+                  className="data-[state=on]:bg-sky-100 data-[state=on]:text-sky-700"
+                  disabled={
+                    readOnly ||
+                    getConfiguredReceptacleBoxes(state.receptacleBoxes).length < 2
+                  }
+                >
+                  <ArrowLeftRight className="size-4" />
+                </Toggle>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="bg-slate-800 text-white text-xs px-2 py-1 border-none shadow-md">
+              Show/Hide Gap Between Adjacent Boxes
+            </TooltipContent>
           </Tooltip>
         </div>
       </div>
