@@ -76,12 +76,16 @@ export function Sidebar() {
   const receptacleTemplateKey = receptacleBoxesTemplateKey(
     state.receptacleBoxes,
     selectedBoxId,
+    state.grid,
+    state.mediaPlayer,
   );
 
   const applyDefaultNoteTemplate = () => {
     const content = buildDefaultInstallationNoteHtml(
       state.receptacleBoxes,
       selectedBoxId,
+      state.grid,
+      state.mediaPlayer,
     );
     const templateFields = {
       name: DEFAULT_INSTALLATION_NOTE_NAME,
@@ -105,6 +109,8 @@ export function Sidebar() {
     const content = buildDefaultInstallationNoteHtml(
       state.receptacleBoxes,
       selectedBoxId,
+      state.grid,
+      state.mediaPlayer,
     );
     for (const note of state.notes) {
       if (note.templateSource === 'receptacle-in-wall' && note.content !== content) {

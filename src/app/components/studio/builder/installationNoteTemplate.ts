@@ -1,4 +1,8 @@
-import type { ReceptacleBoxConfig } from './types';
+import type {
+  GridConfig,
+  MediaPlayerConfig,
+  ReceptacleBoxConfig,
+} from './types';
 import {
   normalizeReceptacleBoxMountType,
   type ReceptacleBoxMountType,
@@ -36,6 +40,29 @@ export function formatCountPhrase(count: number): string {
     return `${COUNT_WORDS[count]} (${count})`;
   }
   return `${count} (${count})`;
+}
+
+function capitalizeFirst(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export function isMediaPlayerSelected(
+  mediaPlayer: MediaPlayerConfig,
+): boolean {
+  return Boolean(
+    mediaPlayer.model || mediaPlayer.alias || mediaPlayer.depth > 0,
+  );
+}
+
+/** Power/CAT6 outlet count: screens (rows × cols), ×2 when a media player is selected. */
+export function computeOutletAndDataCount(
+  grid: GridConfig,
+  mediaPlayer: MediaPlayerConfig,
+): number {
+  const screenCount = grid.rows * grid.cols;
+  const multiplier = isMediaPlayerSelected(mediaPlayer) ? 2 : 1;
+  return screenCount * multiplier;
 }
 
 function formatDimensionInches(value: number): string {
@@ -98,17 +125,23 @@ export function getReceptacleBoxDimensions(
   return { width: Number(w), height: Number(h), label: `${w}x${h}` };
 }
 
-/** Stable key for when box count, sizes, or mount types change (drives live template refresh). */
+/** Stable key for when box count, sizes, mount types, grid, or media player change. */
 export function receptacleBoxesTemplateKey(
   boxes: ReceptacleBoxConfig[],
   preferredBoxId?: string | null,
+  grid?: GridConfig,
+  mediaPlayer?: MediaPlayerConfig,
 ): string {
   const configured = getConfiguredReceptacleBoxes(boxes);
   const groups = groupBoxesByTypeAndSize(configured);
   const groupKey = sortGroupKeys([...groups.keys()])
     .map((key) => `${key}:${groups.get(key)!.length}`)
     .join(';');
-  return `${configured.length}|${groupKey}|${preferredBoxId ?? ''}`;
+  const outletKey =
+    grid && mediaPlayer
+      ? computeOutletAndDataCount(grid, mediaPlayer)
+      : '';
+  return `${configured.length}|${groupKey}|${preferredBoxId ?? ''}|${grid?.rows ?? 1}x${grid?.cols ?? 1}|outlets:${outletKey}|mp:${mediaPlayer ? isMediaPlayerSelected(mediaPlayer) : false}`;
 }
 
 const NICHE_FLUSH_SUFFIX =
@@ -132,10 +165,14 @@ function buildRequirementClause(
 
 export function buildDefaultInstallationNoteHtml(
   receptacleBoxes: ReceptacleBoxConfig[],
-  _preferredBoxId?: string | null,
+  preferredBoxId?: string | null,
+  grid: GridConfig = { rows: 1, cols: 1 },
+  mediaPlayer: MediaPlayerConfig = { depth: 0, position: 'BEHIND_SCREEN' },
 ): string {
   const configuredBoxes = getConfiguredReceptacleBoxes(receptacleBoxes);
   const groups = groupBoxesByTypeAndSize(configuredBoxes);
+  const outletCount = computeOutletAndDataCount(grid, mediaPlayer);
+  const outletCountLabel = capitalizeFirst(formatCountPhrase(outletCount));
 
   const clauses: string[] = [];
   for (const key of sortGroupKeys([...groups.keys()])) {
@@ -157,8 +194,8 @@ export function buildDefaultInstallationNoteHtml(
     requirementParagraph,
     '<p>Each box has:</p>',
     '<ul>',
-    '<li>Two (2) power outlets on a 20-amp Circuit</li>',
-    '<li>Two (2) terminated shielded CAT6 data outlets</li>',
+    '<li>' + outletCountLabel + ' power outlets on a 20-amp Circuit</li>',
+    '<li>' + outletCountLabel + ' terminated shielded CAT6 data outlets</li>',
     '</ul>',
     '<p>The backing should be 3/4&quot; minimum thickness ACX sanded plywood, installed edge-to-edge inside the niche.</p>',
   ].join('');
