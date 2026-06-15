@@ -5,13 +5,21 @@ import {
   computeReceptacleBoxEdgeGuides,
   findReceptacleBoxGapsToShow,
   resolveReceptacleBoxPositionNoOverlap,
+  snapReceptacleBoxDragPosition,
   type BoxEdgeGuide,
   type ReceptacleBoxGapToShow,
   type SideBySideBoxGap,
   type StackedBoxGap,
 } from './receptacleBoxDistanceGuides';
 import type { ReceptacleBoxConfig } from './types';
-import { LETTER_WIDTH, LETTER_HEIGHT, roundToNearestQuarter } from './utils';
+import {
+  LETTER_WIDTH,
+  LETTER_HEIGHT,
+  roundToNearestQuarter,
+  roundToStep,
+  formatReceptacleGapInches,
+  RECEPTACLE_POSITION_STEP,
+} from './utils';
 import { BOMTable } from './BOMTable';
 import { useInventory } from '../../../hooks/useInventory';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
@@ -102,7 +110,7 @@ function ReceptacleBoxHorizontalGapAnnotation({
         fontWeight={500}
         fill={color}
       >
-        {`Gap ${gap.gap.toFixed(1)}"`}
+        {`Gap ${formatReceptacleGapInches(gap.gap)}"`}
       </text>
     </g>
   );
@@ -188,7 +196,7 @@ function ReceptacleBoxVerticalGapAnnotation({
         fontWeight={500}
         fill={color}
       >
-        {`Gap ${gap.gap.toFixed(1)}"`}
+        {`Gap ${formatReceptacleGapInches(gap.gap)}"`}
       </text>
     </g>
   );
@@ -273,7 +281,7 @@ function ReceptacleBoxDragGuides({
         fontSize={0.12}
         fill={guideStroke(guides.left)}
       >
-        {guides.left.distance.toFixed(1)}&quot;
+        {formatReceptacleGapInches(guides.left.distance)}&quot;
       </text>
 
       <line
@@ -292,7 +300,7 @@ function ReceptacleBoxDragGuides({
         fontSize={0.12}
         fill={guideStroke(guides.top)}
       >
-        {guides.top.distance.toFixed(1)}&quot;
+        {formatReceptacleGapInches(guides.top.distance)}&quot;
       </text>
 
       <line
@@ -311,7 +319,7 @@ function ReceptacleBoxDragGuides({
         fontSize={0.12}
         fill={guideStroke(guides.right)}
       >
-        {guides.right.distance.toFixed(1)}&quot;
+        {formatReceptacleGapInches(guides.right.distance)}&quot;
       </text>
 
       <line
@@ -330,7 +338,7 @@ function ReceptacleBoxDragGuides({
         fontSize={0.12}
         fill={guideStroke(guides.bottom)}
       >
-        {guides.bottom.distance.toFixed(1)}&quot;
+        {formatReceptacleGapInches(guides.bottom.distance)}&quot;
       </text>
     </g>
   );
@@ -358,8 +366,8 @@ export function Canvas() {
   
   // Dragging State
   const [draggingBoxId, setDraggingBoxId] = useState<string | null>(null);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [boxStartPos, setBoxStartPos] = useState({ x: 0, y: 0 });
+  const dragGrabOffsetRef = useRef({ x: 0, y: 0 });
+  const dragOriginRef = useRef({ x: 0, y: 0 });
   
   // Smart Guides State
   const [guides, setGuides] = useState<{
@@ -418,133 +426,110 @@ export function Canvas() {
     return { x, y };
   };
 
+  const svgPointToReal = (svgX: number, svgY: number) => ({
+    x: (svgX - startX - contentOffsetX) / scale,
+    y: (svgY - startY - contentOffsetY) / scale,
+  });
+
   const handleMouseDown = (e: React.MouseEvent, boxId: string) => {
     if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     const pos = getMousePosInInches(e);
+    const real = svgPointToReal(pos.x, pos.y);
     const box = configuredReceptacleBoxes.find(b => b.id === boxId);
-    
+
     if (box) {
+      dragGrabOffsetRef.current = {
+        x: real.x - box.posX,
+        y: real.y - box.posY,
+      };
+      dragOriginRef.current = { x: box.posX, y: box.posY };
       setDraggingBoxId(boxId);
-      setDragStart(pos);
-      setBoxStartPos({ x: box.posX, y: box.posY });
     }
   };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!draggingBoxId) return;
-      
+
       const box = configuredReceptacleBoxes.find(b => b.id === draggingBoxId);
       if (!box) return;
 
       const pos = getMousePosInInches(e);
-      const deltaXInches = pos.x - dragStart.x;
-      const deltaYInches = pos.y - dragStart.y;
+      const real = svgPointToReal(pos.x, pos.y);
 
-      // Convert visual delta to real-world delta
-      const realDeltaX = deltaXInches / scale;
-      const realDeltaY = deltaYInches / scale;
+      let newPosX = real.x - dragGrabOffsetRef.current.x;
+      let newPosY = real.y - dragGrabOffsetRef.current.y;
 
-      let newPosX = boxStartPos.x + realDeltaX;
-      let newPosY = boxStartPos.y + realDeltaY;
-
-      // --- Snapping Logic ---
-      const SNAP_THRESHOLD = 0.2; // inches (Real World)
-      const GRID_SNAP = 0.5; // Snap to nearest 0.5 inch
-
+      const SNAP_THRESHOLD = 0.08;
       let activeGuides = { x: null as number | null, y: null as number | null };
+      const snap = (value: number) => roundToStep(value, RECEPTACLE_POSITION_STEP);
 
-      // 1. Snap to Grid (Pixel Perfect)
-      const gridSnapX = Math.round(newPosX / GRID_SNAP) * GRID_SNAP;
-      const gridSnapY = Math.round(newPosY / GRID_SNAP) * GRID_SNAP;
-
-      if (Math.abs(newPosX - gridSnapX) < SNAP_THRESHOLD) {
-        newPosX = gridSnapX;
-      }
-      if (Math.abs(newPosY - gridSnapY) < SNAP_THRESHOLD) {
-        newPosY = gridSnapY;
-      }
-
-      // 2. Snap to Other Boxes (Alignment)
+      // 1. Edge alignment (touch / flush with other boxes)
       configuredReceptacleBoxes.forEach(otherBox => {
         if (otherBox.id === draggingBoxId) return;
 
-        // X Alignment
-        // Left align
         if (Math.abs(newPosX - otherBox.posX) < SNAP_THRESHOLD) {
-          newPosX = otherBox.posX;
+          newPosX = snap(otherBox.posX);
           activeGuides.x = newPosX * scale;
         }
-        // Right align (Right edge of this box to right edge of other box)
         if (Math.abs((newPosX + box.width) - (otherBox.posX + otherBox.width)) < SNAP_THRESHOLD) {
-          newPosX = otherBox.posX + otherBox.width - box.width;
+          newPosX = snap(otherBox.posX + otherBox.width - box.width);
           activeGuides.x = (newPosX + box.width) * scale;
         }
-        // Adjacent (Right edge of this box to left edge of other box)
         if (Math.abs((newPosX + box.width) - otherBox.posX) < SNAP_THRESHOLD) {
-          newPosX = otherBox.posX - box.width;
+          newPosX = snap(otherBox.posX - box.width);
           activeGuides.x = otherBox.posX * scale;
         }
-        // Adjacent (Left edge of this box to right edge of other box)
         if (Math.abs(newPosX - (otherBox.posX + otherBox.width)) < SNAP_THRESHOLD) {
-          newPosX = otherBox.posX + otherBox.width;
+          newPosX = snap(otherBox.posX + otherBox.width);
           activeGuides.x = (otherBox.posX + otherBox.width) * scale;
         }
 
-        // Y Alignment (Same logic)
-        // Top align
         if (Math.abs(newPosY - otherBox.posY) < SNAP_THRESHOLD) {
-          newPosY = otherBox.posY;
+          newPosY = snap(otherBox.posY);
           activeGuides.y = newPosY * scale;
         }
-        // Bottom align
         if (Math.abs((newPosY + box.height) - (otherBox.posY + otherBox.height)) < SNAP_THRESHOLD) {
-          newPosY = otherBox.posY + otherBox.height - box.height;
+          newPosY = snap(otherBox.posY + otherBox.height - box.height);
           activeGuides.y = (newPosY + box.height) * scale;
         }
-        // Stack (Bottom of this to Top of other)
         if (Math.abs((newPosY + box.height) - otherBox.posY) < SNAP_THRESHOLD) {
-          newPosY = otherBox.posY - box.height;
+          newPosY = snap(otherBox.posY - box.height);
           activeGuides.y = otherBox.posY * scale;
         }
-        // Stack (Top of this to Bottom of other)
         if (Math.abs(newPosY - (otherBox.posY + otherBox.height)) < SNAP_THRESHOLD) {
-          newPosY = otherBox.posY + otherBox.height;
+          newPosY = snap(otherBox.posY + otherBox.height);
           activeGuides.y = (otherBox.posY + otherBox.height) * scale;
         }
       });
 
-      // 3. Snap to Screen Edges
-      // Screen Left (0)
+      // 2. Screen edges & center
       if (Math.abs(newPosX) < SNAP_THRESHOLD) {
         newPosX = 0;
         activeGuides.x = 0;
       }
-      // Screen Right (Total Width)
       const totalWidth = drawingWidthInches - ((mode === 'NICHE' || mode === 'TABLE_NICHE') ? nicheSettings.clearanceSides * 2 : 0);
       if (Math.abs((newPosX + box.width) - totalWidth) < SNAP_THRESHOLD) {
-        newPosX = totalWidth - box.width;
+        newPosX = snap(totalWidth - box.width);
         activeGuides.x = totalWidth * scale;
       }
-      
-      // Screen Center
       const centerX = totalWidth / 2;
       const boxCenterX = newPosX + (box.width / 2);
       if (Math.abs(boxCenterX - centerX) < SNAP_THRESHOLD) {
-        newPosX = centerX - (box.width / 2);
+        newPosX = snap(centerX - (box.width / 2));
         activeGuides.x = centerX * scale;
       }
 
-      // 4. Hard clamp to screen borders (prevent moving outside)
       const totalHeight = screen.height * grid.rows;
       newPosX = Math.max(0, Math.min(newPosX, totalWidth - box.width));
       newPosY = Math.max(0, Math.min(newPosY, totalHeight - box.height));
 
-      // 5. Prevent overlapping other receptacle boxes
       const others = configuredReceptacleBoxes.filter((b) => b.id !== draggingBoxId);
+
+      // 3. Prevent overlap (use drag start for push direction)
       if (others.length > 0) {
         const resolved = resolveReceptacleBoxPositionNoOverlap(
           newPosX,
@@ -553,11 +538,24 @@ export function Canvas() {
           box.height,
           others,
           { maxX: totalWidth, maxY: totalHeight },
-          { x: box.posX, y: box.posY },
+          dragOriginRef.current,
         );
         newPosX = resolved.posX;
         newPosY = resolved.posY;
       }
+
+      // 4. Snap gaps to 0.5" after overlap resolve (position derived from gap)
+      const gapSnapped = snapReceptacleBoxDragPosition({
+        posX: newPosX,
+        posY: newPosY,
+        width: box.width,
+        height: box.height,
+        others,
+        totalWidth,
+        totalHeight,
+      });
+      newPosX = gapSnapped.posX;
+      newPosY = gapSnapped.posY;
 
       setGuides(activeGuides);
       updateReceptacleBox(draggingBoxId, { posX: newPosX, posY: newPosY });
@@ -577,7 +575,7 @@ export function Canvas() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [draggingBoxId, dragStart, boxStartPos, scale, updateReceptacleBox, configuredReceptacleBoxes, startX, startY, contentOffsetX, contentOffsetY, drawingWidthInches, mode, nicheSettings, screen.height, grid.rows]);
+  }, [draggingBoxId, scale, updateReceptacleBox, configuredReceptacleBoxes, startX, startY, contentOffsetX, contentOffsetY, drawingWidthInches, mode, nicheSettings, screen.height, grid.rows]);
 
   return (
     <div className="w-full h-full flex items-center justify-center overflow-hidden bg-slate-200 p-8 print:p-0 print:bg-white print:overflow-visible">

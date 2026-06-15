@@ -14,6 +14,7 @@ import { Screen, Mount, MediaPlayer, ReceptacleBox } from '../../../types';
 import { RichTextEditor } from './RichTextEditor';
 import { SearchableSelect } from './SearchableSelect';
 import { getDrawingSaveValidation } from './drawingValidation';
+import { roundToStep, RECEPTACLE_POSITION_STEP } from './utils';
 import { cn } from '../../ui/utils';
 import { DEFAULT_RECEPTACLE_BOX_MOUNT_TYPE } from '../../../constants/receptacleBoxTypes';
 import {
@@ -802,13 +803,17 @@ export function Sidebar() {
                     <Label className="text-xs">Pos X (in)</Label>
                     <Input
                       type="number"
+                      step={RECEPTACLE_POSITION_STEP}
                       min={0}
                       max={(orientedScreen.width * state.grid.cols) - box.width}
                       value={box.posX}
                       onChange={(e) => {
                         const maxPosX =
                           orientedScreen.width * state.grid.cols - box.width;
-                        const val = Math.max(0, Math.min(Number(e.target.value), maxPosX));
+                        const val = roundToStep(
+                          Math.max(0, Math.min(Number(e.target.value), maxPosX)),
+                          RECEPTACLE_POSITION_STEP,
+                        );
                         updateReceptacleBox(box.id, { posX: val });
                       }}
                       disabled={readOnly}
@@ -819,13 +824,17 @@ export function Sidebar() {
                     <Label className="text-xs">Pos Y (in)</Label>
                     <Input
                       type="number"
+                      step={RECEPTACLE_POSITION_STEP}
                       min={0}
                       max={(orientedScreen.height * state.grid.rows) - box.height}
                       value={box.posY}
                       onChange={(e) => {
                         const maxPosY =
                           orientedScreen.height * state.grid.rows - box.height;
-                        const val = Math.max(0, Math.min(Number(e.target.value), maxPosY));
+                        const val = roundToStep(
+                          Math.max(0, Math.min(Number(e.target.value), maxPosY)),
+                          RECEPTACLE_POSITION_STEP,
+                        );
                         updateReceptacleBox(box.id, { posY: val });
                       }}
                       disabled={readOnly}

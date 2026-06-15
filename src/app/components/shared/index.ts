@@ -40,9 +40,3 @@ export {
   AdminSkeleton,
   StudioSkeleton,
 } from './skeletons';
-
-
-
-
-
-

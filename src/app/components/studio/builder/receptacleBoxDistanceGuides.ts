@@ -1,4 +1,10 @@
 import type { ReceptacleBoxConfig } from './types';
+import {
+  RECEPTACLE_GAP_SNAP_STEP,
+  RECEPTACLE_GAP_SNAP_THRESHOLD,
+  RECEPTACLE_POSITION_STEP,
+  roundToStep,
+} from './utils';
 
 export type BoxEdgeGuide = {
   distance: number;
@@ -86,6 +92,102 @@ export function resolveReceptacleBoxPositionNoOverlap(
   }
 
   return { posX: x, posY: y };
+}
+
+function snapGapDistance(gap: number): number | null {
+  const snapped = roundToStep(gap, RECEPTACLE_GAP_SNAP_STEP);
+  if (Math.abs(gap - snapped) < RECEPTACLE_GAP_SNAP_THRESHOLD) {
+    return snapped;
+  }
+  return null;
+}
+
+/** Snap position so edge-to-edge gaps land on 0.5" steps. */
+export function snapReceptacleBoxDragPosition({
+  posX,
+  posY,
+  width,
+  height,
+  others,
+  totalWidth,
+  totalHeight,
+}: {
+  posX: number;
+  posY: number;
+  width: number;
+  height: number;
+  others: ReceptacleBoxConfig[];
+  totalWidth: number;
+  totalHeight: number;
+}): { posX: number; posY: number } {
+  let x = posX;
+  let y = posY;
+  const boxRight = x + width;
+  const boxBottom = y + height;
+
+  for (const other of others) {
+    const otherRight = other.posX + other.width;
+    const otherBottom = other.posY + other.height;
+    const yOverlap = rangesOverlap(y, boxBottom, other.posY, otherBottom);
+    const xOverlap = rangesOverlap(x, boxRight, other.posX, otherRight);
+
+    if (yOverlap) {
+      if (x >= otherRight - 0.001) {
+        const gap = x - otherRight;
+        const snappedGap = snapGapDistance(gap);
+        if (snappedGap !== null) {
+          x = otherRight + snappedGap;
+        }
+      } else if (other.posX >= boxRight - 0.001) {
+        const gap = other.posX - boxRight;
+        const snappedGap = snapGapDistance(gap);
+        if (snappedGap !== null) {
+          x = other.posX - width - snappedGap;
+        }
+      }
+    }
+
+    if (xOverlap) {
+      if (y >= otherBottom - 0.001) {
+        const gap = y - otherBottom;
+        const snappedGap = snapGapDistance(gap);
+        if (snappedGap !== null) {
+          y = otherBottom + snappedGap;
+        }
+      } else if (other.posY >= boxBottom - 0.001) {
+        const gap = other.posY - boxBottom;
+        const snappedGap = snapGapDistance(gap);
+        if (snappedGap !== null) {
+          y = other.posY - height - snappedGap;
+        }
+      }
+    }
+  }
+
+  const leftGap = snapGapDistance(x);
+  if (leftGap !== null) {
+    x = leftGap;
+  }
+
+  const rightGap = snapGapDistance(totalWidth - (x + width));
+  if (rightGap !== null) {
+    x = totalWidth - width - rightGap;
+  }
+
+  const topGap = snapGapDistance(y);
+  if (topGap !== null) {
+    y = topGap;
+  }
+
+  const bottomGap = snapGapDistance(totalHeight - (y + height));
+  if (bottomGap !== null) {
+    y = totalHeight - height - bottomGap;
+  }
+
+  return {
+    posX: roundToStep(x, RECEPTACLE_POSITION_STEP),
+    posY: roundToStep(y, RECEPTACLE_POSITION_STEP),
+  };
 }
 
 /** Nearest gap on each side — to another box when aligned, else to screen edge. */

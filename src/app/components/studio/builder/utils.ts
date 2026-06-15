@@ -9,6 +9,27 @@ export const VERTICAL_MARGIN = 4.0; // Reserve space for footer and floor line
 
 // ─── Rounding (matches original LED calculation logic) ─────────────────────
 
+/** Round to the nearest step (e.g. 0.1 for tenths of an inch). Avoids float drift. */
+export function roundToStep(value: number, step: number): number {
+  if (step <= 0) return value;
+  const decimals = Math.max(0, Math.ceil(-Math.log10(step)));
+  const rounded = Math.round(value / step) * step;
+  return Number(rounded.toFixed(decimals));
+}
+
+/** Receptacle box drag stops & position input (inches). */
+export const RECEPTACLE_POSITION_STEP = 0.5;
+
+/** Gap labels & magnetic snap while dragging — matches position step. */
+export const RECEPTACLE_GAP_SNAP_STEP = 0.5;
+export const RECEPTACLE_GAP_SNAP_THRESHOLD = 0.2;
+
+/** Display gap distance rounded to 0.5" steps (e.g. 3, 3.5). */
+export function formatReceptacleGapInches(value: number): string {
+  const rounded = roundToStep(value, RECEPTACLE_GAP_SNAP_STEP);
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 /** Round up to the nearest ¼ inch (0, 0.25, 0.5, 0.75). */
 export function roundToNearestQuarter(num: number): number {
   const whole = Math.floor(num);
